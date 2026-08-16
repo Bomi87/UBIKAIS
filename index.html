@@ -2500,7 +2500,127 @@ function isValidAirportCoordinate(airport) {
     Number.isFinite(Number(airport.lon))
   );
 }
+function applyAtsPlanIdentity(
+  flight,
+  data
+) {
 
+  if (
+    !flight ||
+    !data
+  ) {
+    return false;
+  }
+
+
+  const newDep =
+    normalizeIcao(
+      data.fplDep
+    );
+
+  const newArr =
+    normalizeIcao(
+      data.fplArr
+    );
+
+
+  let changed =
+    false;
+
+
+  if (
+    newDep &&
+    newDep !==
+      flight.dep
+  ) {
+
+    flight.listDep =
+      flight.listDep ||
+      flight.dep ||
+      "";
+
+    flight.dep =
+      newDep;
+
+    changed =
+      true;
+
+  }
+
+
+  if (
+    newArr &&
+    newArr !==
+      flight.arr
+  ) {
+
+    flight.listArr =
+      flight.listArr ||
+      flight.arr ||
+      "";
+
+    flight.arr =
+      newArr;
+
+    changed =
+      true;
+
+  }
+
+
+  if (
+    newDep &&
+    newArr
+  ) {
+
+    flight.legSource =
+      data.hasChange
+        ? "ATS+CHG"
+        : "ATS";
+
+  }
+
+
+  return changed;
+
+}
+
+
+
+function refreshVisibleFlightsAfterAts() {
+
+  if (
+    !activeAirportFilter
+  ) {
+
+    visibleFlights =
+      allFlights.slice();
+
+    return;
+
+  }
+
+
+  visibleFlights =
+    allFlights.filter(
+      function(
+        flight
+      ) {
+
+        const counterpart =
+          direction ===
+          "arr"
+            ? flight.dep
+            : flight.arr;
+
+
+        return counterpart ===
+          activeAirportFilter;
+
+      }
+    );
+
+}
 /************************************************************
  * LOCAL LOOKUP
  * KML -> valid permanent cache
