@@ -1263,11 +1263,11 @@ const AIRPORT_DATA_API =
  ************************************************************/
 
 const KML_STORAGE_KEY =
-  "UBIKAIS_ACJ_NDB_AIRPORTS_V22";
+  "UBIKAIS_ACJ_NDB_AIRPORTS_V23";
 
 
 const FALLBACK_STORAGE_KEY =
-  "UBIKAIS_AIRPORT_PERMANENT_CACHE_V22";
+  "UBIKAIS_AIRPORT_PERMANENT_CACHE_V23";
 
 
 /************************************************************
@@ -2731,110 +2731,125 @@ function normalizeLonNearReference(
   referenceLon
 ) {
 
-  lon =
-    Number(
-      lon
-    );
-
-
-  referenceLon =
-    Number(
-      referenceLon
-    );
-
+  lon = Number(lon);
+  referenceLon = Number(referenceLon);
 
   if (
-    !Number.isFinite(
-      lon
-    ) ||
-    !Number.isFinite(
-      referenceLon
-    )
+    !Number.isFinite(lon) ||
+    !Number.isFinite(referenceLon)
   ) {
-
     return lon;
-
   }
 
-
-  while (
-    lon -
-    referenceLon >
-    180
-  ) {
-
-    lon -=
-      360;
-
+  while (lon - referenceLon > 180) {
+    lon -= 360;
   }
 
-
-  while (
-    lon -
-    referenceLon <
-    -180
-  ) {
-
-    lon +=
-      360;
-
+  while (lon - referenceLon < -180) {
+    lon += 360;
   }
-
 
   return lon;
+}
 
+
+/************************************************************
+ * WORLD COPY RULE
+ *
+ * When the anchor/query airport is in East Asia, airports in
+ * the Americas are intentionally rendered on the RIGHT-hand
+ * Pacific world copy instead of simply choosing the nearest
+ * longitude copy.
+ *
+ * This keeps routes such as:
+ * RKSI -> PANC / KLAX / KIAD / CYYZ / SBKP
+ * visually continuous to the right across the Pacific.
+ ************************************************************/
+function getRenderLongitude(
+  icao,
+  lon,
+  referenceLon
+) {
+
+  const code = String(icao || "")
+    .trim()
+    .toUpperCase();
+
+  lon = Number(lon);
+  referenceLon = Number(referenceLon);
+
+  if (
+    !Number.isFinite(lon) ||
+    !Number.isFinite(referenceLon)
+  ) {
+    return lon;
+  }
+
+  const group =
+    getCountryGroupByIcao(code);
+
+  // East-Asia anchor (Korea/Japan/China vicinity).
+  const referenceIsEastAsia =
+    referenceLon >= 90 &&
+    referenceLon <= 180;
+
+  // USA, Canada, Mexico and all South America.
+  const isAmericas =
+    group === "USA" ||
+    group === "Canada" ||
+    group === "South America" ||
+    /^MM/.test(code);
+
+  if (
+    referenceIsEastAsia &&
+    isAmericas
+  ) {
+
+    while (lon < referenceLon) {
+      lon += 360;
+    }
+
+    return lon;
+  }
+
+  return normalizeLonNearReference(
+    lon,
+    referenceLon
+  );
 }
 
 
 function getRenderLatLng(
   airport,
-  referenceLon
+  referenceLon,
+  icao
 ) {
 
   if (!airport) {
-
     return null;
-
   }
 
-
-  const lat =
-    Number(
-      airport.lat
-    );
-
-
-  const lon =
-    Number(
-      airport.lon
-    );
-
+  const lat = Number(airport.lat);
+  const lon = Number(airport.lon);
 
   if (
-    !Number.isFinite(
-      lat
-    ) ||
-    !Number.isFinite(
-      lon
-    )
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lon)
   ) {
-
     return null;
-
   }
 
+  const code =
+    normalizeIcao(icao || airport.icao);
 
   return [
-
     lat,
-
-    normalizeLonNearReference(
+    getRenderLongitude(
+      code,
       lon,
       referenceLon
     )
-
   ];
-
 }
 
 
@@ -4176,7 +4191,8 @@ function addResultAirportMarker(
   const latlng =
     getRenderLatLng(
       airport,
-      referenceLon
+      referenceLon,
+      code
     );
 
 
@@ -4449,7 +4465,7 @@ async function searchAirportOnMap() {
         ? Number(queryAirport.lon)
         : map.getCenter().lng;
 
-    const latlng = getRenderLatLng(airport, referenceLon);
+    const latlng = getRenderLatLng(airport, referenceLon, code);
     if (!latlng) {
       alert(code + " 공항 좌표가 올바르지 않습니다.");
       return;
@@ -4790,14 +4806,16 @@ async function drawSelectedLeg(
   const depLatLng =
     getRenderLatLng(
       dep,
-      referenceLon
+      referenceLon,
+      depCode
     );
 
 
   const arrLatLng =
     getRenderLatLng(
       arr,
-      referenceLon
+      referenceLon,
+      arrCode
     );
 
 
