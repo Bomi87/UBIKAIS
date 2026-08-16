@@ -1744,6 +1744,516 @@ let userMovedMap =
 
 
 /************************************************************
+ * SKYVECTOR RETURN STATE
+ *
+ * iOS Safari가 SkyVector 창을 닫고 돌아올 때
+ * 원래 UBIKAIS 페이지를 메모리에서 재로드하는 경우에만 사용.
+ *
+ * SkyVector 버튼을 누르는 순간의 현재 화면 상태를 sessionStorage에
+ * 임시 저장하고, 새 문서로 다시 로드되었을 때 한 번 복원한다.
+ ************************************************************/
+
+const SKYVECTOR_RETURN_STATE_KEY =
+  "UBIKAIS_SKYVECTOR_RETURN_STATE_V1";
+
+
+function saveSkyVectorReturnState() {
+
+  try {
+
+    const dateInput =
+      document.getElementById(
+        "dateInput"
+      );
+
+
+    const airportInput =
+      document.getElementById(
+        "airportInput"
+      );
+
+
+    const detailPanel =
+      document.getElementById(
+        "detailPanel"
+      );
+
+
+    const changeSection =
+      document.getElementById(
+        "changeSection"
+      );
+
+
+    const center =
+      map
+        ? map.getCenter()
+        : null;
+
+
+    const state = {
+
+      savedAt:
+        Date.now(),
+
+      direction:
+        direction,
+
+      date:
+        dateInput
+          ? dateInput.value
+          : "",
+
+      airport:
+        airportInput
+          ? airportInput.value
+          : "",
+
+      allFlights:
+        allFlights,
+
+      airportFilter:
+        airportFilter,
+
+      selectedFlightKey:
+        selectedFlight
+          ? getFlightUniqueKey(
+              selectedFlight
+            )
+          : "",
+
+      detailOpen:
+        !!(
+          detailPanel &&
+          detailPanel.classList.contains(
+            "open"
+          )
+        ),
+
+      routeText:
+        document
+          .getElementById(
+            "routeBox"
+          )
+          .textContent,
+
+      originalText:
+        document
+          .getElementById(
+            "originalBox"
+          )
+          .textContent,
+
+      changeText:
+        document
+          .getElementById(
+            "changeBox"
+          )
+          .textContent,
+
+      changeVisible:
+        !!(
+          changeSection &&
+          changeSection.style.display !==
+            "none"
+        ),
+
+      mapCenter:
+        center
+          ? [
+              center.lat,
+              center.lng
+            ]
+          : null,
+
+      mapZoom:
+        map
+          ? map.getZoom()
+          : null
+
+    };
+
+
+    sessionStorage.setItem(
+      SKYVECTOR_RETURN_STATE_KEY,
+      JSON.stringify(
+        state
+      )
+    );
+
+
+  } catch (
+    err
+  ) {
+
+    console.warn(
+      "SkyVector return state save failed:",
+      err
+    );
+
+  }
+
+}
+
+
+function clearSkyVectorReturnState() {
+
+  try {
+
+    sessionStorage.removeItem(
+      SKYVECTOR_RETURN_STATE_KEY
+    );
+
+  } catch (
+    err
+  ) {}
+
+}
+
+
+function armSkyVectorSameDocumentCleanup() {
+
+  let becameHidden =
+    document.hidden;
+
+
+  function handleVisibility() {
+
+    if (
+      document.hidden
+    ) {
+
+      becameHidden =
+        true;
+
+      return;
+
+    }
+
+
+    if (
+      becameHidden
+    ) {
+
+      /*
+       * 같은 문서가 그대로 살아서 돌아온 경우에는
+       * 복원할 필요가 없으므로 임시 상태를 삭제.
+       *
+       * 페이지가 iOS에 의해 재로드된 경우 이 listener 자체가
+       * 사라지므로 새 문서에서 restore가 정상 실행된다.
+       */
+
+      clearSkyVectorReturnState();
+
+
+      document
+        .removeEventListener(
+          "visibilitychange",
+          handleVisibility
+        );
+
+    }
+
+  }
+
+
+  document
+    .addEventListener(
+      "visibilitychange",
+      handleVisibility
+    );
+
+}
+
+
+async function restoreSkyVectorReturnState() {
+
+  let state =
+    null;
+
+
+  try {
+
+    const raw =
+      sessionStorage.getItem(
+        SKYVECTOR_RETURN_STATE_KEY
+      );
+
+
+    if (!raw) {
+      return false;
+    }
+
+
+    state =
+      JSON.parse(
+        raw
+      );
+
+
+  } catch (
+    err
+  ) {
+
+    clearSkyVectorReturnState();
+
+    return false;
+
+  }
+
+
+  /*
+   * 오래된 SkyVector 상태는 복원하지 않는다.
+   */
+
+  if (
+    !state ||
+    !state.savedAt ||
+    Date.now() -
+      Number(
+        state.savedAt
+      ) >
+      30 * 60 * 1000
+  ) {
+
+    clearSkyVectorReturnState();
+
+    return false;
+
+  }
+
+
+  try {
+
+    const dateInput =
+      document.getElementById(
+        "dateInput"
+      );
+
+
+    const airportInput =
+      document.getElementById(
+        "airportInput"
+      );
+
+
+    if (
+      dateInput &&
+      state.date
+    ) {
+
+      dateInput.value =
+        state.date;
+
+    }
+
+
+    if (
+      airportInput &&
+      state.airport
+    ) {
+
+      airportInput.value =
+        normalizeIcao(
+          state.airport
+        );
+
+    }
+
+
+    setDirection(
+      state.direction ===
+        "arr"
+        ? "arr"
+        : "dep"
+    );
+
+
+    allFlights =
+      Array.isArray(
+        state.allFlights
+      )
+        ? state.allFlights
+        : [];
+
+
+    airportFilter =
+      normalizeIcao(
+        state.airportFilter ||
+        ""
+      );
+
+
+    refreshVisibleFlightsAfterAts();
+
+
+    selectedFlight =
+      null;
+
+
+    if (
+      state.selectedFlightKey
+    ) {
+
+      selectedFlight =
+        allFlights.find(
+          function(flight) {
+
+            return (
+              getFlightUniqueKey(
+                flight
+              ) ===
+              state.selectedFlightKey
+            );
+
+          }
+        ) ||
+        null;
+
+    }
+
+
+    renderFlightList();
+
+
+    activeSearchId++;
+
+
+    renderResultAirportsFast(
+      activeSearchId,
+      true
+    );
+
+
+    if (
+      selectedFlight
+    ) {
+
+      if (
+        state.detailOpen
+      ) {
+
+        openDetail(
+          selectedFlight
+        );
+
+
+        document
+          .getElementById(
+            "routeBox"
+          )
+          .textContent =
+            state.routeText ||
+            "";
+
+
+        document
+          .getElementById(
+            "originalBox"
+          )
+          .textContent =
+            state.originalText ||
+            "";
+
+
+        document
+          .getElementById(
+            "changeBox"
+          )
+          .textContent =
+            state.changeText ||
+            "";
+
+
+        document
+          .getElementById(
+            "changeSection"
+          )
+          .style.display =
+            state.changeVisible
+              ? ""
+              : "none";
+
+      }
+
+
+      await drawSelectedLeg(
+        selectedFlight
+      );
+
+    }
+
+
+    if (
+      map &&
+      Array.isArray(
+        state.mapCenter
+      ) &&
+      state.mapCenter.length ===
+        2 &&
+      Number.isFinite(
+        Number(
+          state.mapCenter[0]
+        )
+      ) &&
+      Number.isFinite(
+        Number(
+          state.mapCenter[1]
+        )
+      ) &&
+      Number.isFinite(
+        Number(
+          state.mapZoom
+        )
+      )
+    ) {
+
+      map.setView(
+        [
+          Number(
+            state.mapCenter[0]
+          ),
+          Number(
+            state.mapCenter[1]
+          )
+        ],
+        Number(
+          state.mapZoom
+        ),
+        {
+          animate:
+            false
+        }
+      );
+
+    }
+
+
+    clearSkyVectorReturnState();
+
+    return true;
+
+
+  } catch (
+    err
+  ) {
+
+    console.warn(
+      "SkyVector return state restore failed:",
+      err
+    );
+
+
+    clearSkyVectorReturnState();
+
+    return false;
+
+  }
+
+}
+
+
+/************************************************************
  * AIRPORT DATABASE
  ************************************************************/
 
@@ -1958,6 +2468,9 @@ function startUbikaisAfterAuth() {
   initializeMap();
 
   bindEvents();
+
+
+  restoreSkyVectorReturnState();
 
 
   refreshAirportKml()
@@ -6202,6 +6715,11 @@ function openSkyVectorFromDetail() {
     encodeURIComponent(
       fpl
     );
+
+
+  saveSkyVectorReturnState();
+
+  armSkyVectorSameDocumentCleanup();
 
 
   window.open(
