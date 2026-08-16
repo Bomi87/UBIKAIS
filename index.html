@@ -2493,7 +2493,13 @@ function normalizeIcao(
     : "";
 
 }
-
+function isValidAirportCoordinate(airport) {
+  return !!(
+    airport &&
+    Number.isFinite(Number(airport.lat)) &&
+    Number.isFinite(Number(airport.lon))
+  );
+}
 
 /************************************************************
  * LOCAL LOOKUP
