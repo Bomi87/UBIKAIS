@@ -841,7 +841,6 @@ input {
 }
 
 
-
 /************************************************************
  * MAP SEARCH BOX
  ************************************************************/
@@ -979,6 +978,20 @@ input {
         id="dateInput"
         type="date"
       >
+
+      <script>
+      (function () {
+        const input = document.getElementById("dateInput");
+        if (!input) return;
+
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, "0");
+        const dd = String(now.getDate()).padStart(2, "0");
+
+        input.value = `${yyyy}-${mm}-${dd}`;
+      })();
+      </script>
 
     </div>
 
@@ -1216,80 +1229,1357 @@ const AIRPORT_DATA_API =
 
 /************************************************************
  * NOMINATIM
- *
- * 최종 fallback 전용.
- * q = ICAO + " airport"
- *
- * 좌표만 사용.
- * 주소 / display_name은 사용하지 않음.
- *
- * 같은 브라우저에서는 실제 Nominatim 호출을
- * 최소 1.1초 간격으로 직렬화한다.
  ************************************************************/
 
-let nominatimQueue =
-  Promise.resolve();
+const NOMINATIM_URL =
+  "https://nominatim.openstreetmap.org/search";
 
 
-let lastNominatimRequestAt =
+/************************************************************
+ * STORAGE
+ *
+ * TTL 없음.
+ ************************************************************/
+
+const KML_STORAGE_KEY =
+  "UBIKAIS_ACJ_NDB_AIRPORTS_V20";
+
+
+const FALLBACK_STORAGE_KEY =
+  "UBIKAIS_AIRPORT_PERMANENT_CACHE_V20";
+
+
+/************************************************************
+ * COLORS
+ ************************************************************/
+
+const COUNTRY_COLORS = {
+
+  "Korea":
+    "#111111",
+
+  "China":
+    "#dc2626",
+
+  "Japan":
+    "#2563eb",
+
+  "Middle East":
+    "#facc15",
+
+  "Taiwan":
+    "#f97316",
+
+  "Hong Kong / Macau":
+    "#0ea5e9",
+
+  "USA":
+    "#16a34a",
+
+  "Canada":
+    "#22c55e",
+
+  "Europe":
+    "#7c3aed",
+
+  "Southeast Asia":
+    "#06b6d4",
+
+  "India":
+    "#f59e0b",
+
+  "Central Asia":
+    "#64748b",
+
+  "Oceania":
+    "#0891b2",
+
+  "Africa":
+    "#14b8a6",
+
+  "South America":
+    "#84cc16",
+
+  "Other":
+    "#64748b"
+
+};
+
+
+/************************************************************
+ * AIRLINES
+ ************************************************************/
+
+const AIRLINE_MAP = {
+
+  KAL:"Korean Air",
+  AAR:"Asiana Airlines",
+  JJA:"Jeju Air",
+  JNA:"Jin Air",
+  TWB:"T'way Air",
+  ESR:"Eastar Jet",
+  APZ:"Air Premia",
+  AIH:"Air Incheon",
+  ABL:"Air Busan",
+  ASV:"Air Seoul",
+
+  JAL:"Japan Airlines",
+  ANA:"All Nippon Airways",
+  APJ:"Peach Aviation",
+  JJP:"Jetstar Japan",
+  SKY:"Skymark Airlines",
+  SNJ:"Solaseed Air",
+  TZP:"ZIPAIR Tokyo",
+
+  EVA:"EVA Air",
+  CAL:"China Airlines",
+  SJX:"STARLUX Airlines",
+  TTW:"Tigerair Taiwan",
+
+  CCA:"Air China",
+  CES:"China Eastern Airlines",
+  CSN:"China Southern Airlines",
+  CXA:"Xiamen Airlines",
+  CHH:"Hainan Airlines",
+  CSZ:"Shenzhen Airlines",
+  CQH:"Spring Airlines",
+  DKH:"Juneyao Air",
+
+  CPA:"Cathay Pacific",
+  CRK:"Hong Kong Airlines",
+  HKE:"HK Express",
+  AMU:"Air Macau",
+
+  SIA:"Singapore Airlines",
+  TGW:"Scoot",
+  MAS:"Malaysia Airlines",
+  AXM:"AirAsia",
+  MXD:"Batik Air Malaysia",
+  THA:"Thai Airways",
+  PAL:"Philippine Airlines",
+  CEB:"Cebu Pacific",
+  GIA:"Garuda Indonesia",
+  HVN:"Vietnam Airlines",
+  VJC:"VietJet Air",
+  RBA:"Royal Brunei Airlines",
+
+  UAE:"Emirates",
+  QTR:"Qatar Airways",
+  ETD:"Etihad Airways",
+  SVA:"Saudia",
+  GFA:"Gulf Air",
+  OMA:"Oman Air",
+  KAC:"Kuwait Airways",
+
+  UAL:"United Airlines",
+  DAL:"Delta Air Lines",
+  AAL:"American Airlines",
+  ACA:"Air Canada",
+  WJA:"WestJet",
+  ASA:"Alaska Airlines",
+  HAL:"Hawaiian Airlines",
+
+  FDX:"FedEx Express",
+  UPS:"UPS Airlines",
+  GTI:"Atlas Air",
+  CLX:"Cargolux",
+  NCA:"Nippon Cargo Airlines",
+
+  AFR:"Air France",
+  BAW:"British Airways",
+  DLH:"Lufthansa",
+  KLM:"KLM",
+  FIN:"Finnair",
+  SAS:"SAS",
+  LOT:"LOT Polish Airlines",
+  SWR:"Swiss",
+  AUA:"Austrian Airlines",
+  ITY:"ITA Airways",
+  IBE:"Iberia",
+  THY:"Turkish Airlines",
+  VIR:"Virgin Atlantic",
+
+  QFA:"Qantas",
+  ANZ:"Air New Zealand",
+
+  ETH:"Ethiopian Airlines",
+  SAA:"South African Airways",
+
+  MGL:"MIAT Mongolian Airlines",
+  KZR:"Air Astana",
+  UZB:"Uzbekistan Airways",
+
+  AIC:"Air India",
+  IGO:"IndiGo"
+
+};
+
+
+/************************************************************
+ * STATE
+ ************************************************************/
+
+let direction =
+  "dep";
+
+
+let allFlights =
+  [];
+
+
+let visibleFlights =
+  [];
+
+
+let selectedFlight =
+  null;
+
+
+let airportFilter =
+  "";
+
+
+let activeSearchId =
   0;
 
 
-function sleepMs(ms) {
+let userMovedMap =
+  false;
 
-  return new Promise(
-    function(resolve) {
-      setTimeout(resolve, ms);
+
+/************************************************************
+ * AIRPORT DATABASE
+ ************************************************************/
+
+let airportDb =
+  loadJsonStorage(
+    KML_STORAGE_KEY
+  );
+
+
+/*
+ * 이 cache에는 Airport-Data 또는 Nominatim에서
+ * 성공한 공항만 저장.
+ *
+ * TTL 없음.
+ */
+
+let fallbackAirportCache =
+  loadJsonStorage(
+    FALLBACK_STORAGE_KEY
+  );
+
+
+const pendingAirportLookups =
+  {};
+
+
+const pendingNominatimLookups =
+  {};
+
+
+/************************************************************
+ * MAP
+ ************************************************************/
+
+const map =
+  L.map(
+    "map",
+    {
+
+      zoomControl:
+        false,
+
+      preferCanvas:
+        true,
+
+      worldCopyJump:
+        false
+
+    }
+  )
+  .setView(
+    [
+      36,
+      128
+    ],
+    5
+  );
+
+
+L.tileLayer(
+  "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+  {
+
+    maxZoom:
+      15,
+
+    noWrap:
+      false,
+
+    attribution:
+      "&copy; OpenStreetMap &copy; CARTO"
+
+  }
+)
+.addTo(
+  map
+);
+
+
+L.control
+  .zoom({
+    position:
+      "bottomleft"
+  })
+  .addTo(
+    map
+  );
+
+
+const resultLayer =
+  L.featureGroup()
+    .addTo(
+      map
+    );
+
+
+const selectedLegLayer =
+  L.featureGroup()
+    .addTo(
+      map
+    );
+
+
+const searchLayer =
+  L.featureGroup()
+    .addTo(
+      map
+    );
+
+
+/************************************************************
+ * USER MAP MOVEMENT
+ ************************************************************/
+
+map.on(
+  "dragstart",
+  function() {
+
+    userMovedMap =
+      true;
+
+  }
+);
+
+
+map.on(
+  "zoomstart",
+  function() {
+
+    userMovedMap =
+      true;
+
+  }
+);
+
+
+/************************************************************
+ * INIT
+ ************************************************************/
+
+document.addEventListener(
+  "DOMContentLoaded",
+  function() {
+
+    setToday();
+
+    bindEvents();
+
+
+    /*
+     * 초기 로딩에서는 KML만 갱신.
+     *
+     * Airport-Data 호출 X
+     * Nominatim 호출 X
+     */
+
+    refreshAirportKml()
+      .catch(
+        function(err) {
+
+          console.warn(
+            "KML refresh failed:",
+            err
+          );
+
+        }
+      );
+
+  }
+);
+
+
+/************************************************************
+ * STORAGE
+ ************************************************************/
+
+function loadJsonStorage(
+  key
+) {
+
+  try {
+
+    const raw =
+      localStorage.getItem(
+        key
+      );
+
+
+    if (!raw) {
+
+      return {};
+
+    }
+
+
+    const parsed =
+      JSON.parse(
+        raw
+      );
+
+
+    return (
+      parsed &&
+      typeof parsed ===
+        "object"
+    )
+      ? parsed
+      : {};
+
+  } catch (
+    err
+  ) {
+
+    return {};
+
+  }
+
+}
+
+
+function saveJsonStorage(
+  key,
+  value
+) {
+
+  try {
+
+    localStorage.setItem(
+      key,
+      JSON.stringify(
+        value
+      )
+    );
+
+  } catch (
+    err
+  ) {
+
+    console.warn(
+      "localStorage save failed:",
+      key,
+      err
+    );
+
+  }
+
+}
+
+
+/************************************************************
+ * CACHE AIRPORT
+ ************************************************************/
+
+function saveAirportToPermanentCache(
+  airport
+) {
+
+  if (!airport) {
+
+    return;
+
+  }
+
+
+  const code =
+    normalizeIcao(
+      airport.icao
+    );
+
+
+  if (!code) {
+
+    return;
+
+  }
+
+
+  const lat =
+    Number(
+      airport.lat
+    );
+
+
+  const lon =
+    Number(
+      airport.lon
+    );
+
+
+  if (
+    !Number.isFinite(
+      lat
+    ) ||
+    !Number.isFinite(
+      lon
+    )
+  ) {
+
+    return;
+
+  }
+
+
+  fallbackAirportCache[
+    code
+  ] = {
+
+    icao:
+      code,
+
+    lat:
+      lat,
+
+    lon:
+      lon,
+
+    source:
+      String(
+        airport.source ||
+        old.source ||
+        ""
+      )
+
+  };
+
+
+  saveJsonStorage(
+    FALLBACK_STORAGE_KEY,
+    fallbackAirportCache
+  );
+
+}
+
+
+/************************************************************
+ * DATE
+ ************************************************************/
+
+function setToday() {
+
+  const d =
+    new Date();
+
+
+  const yyyy =
+    d.getFullYear();
+
+
+  const mm =
+    String(
+      d.getMonth() + 1
+    )
+      .padStart(
+        2,
+        "0"
+      );
+
+
+  const dd =
+    String(
+      d.getDate()
+    )
+      .padStart(
+        2,
+        "0"
+      );
+
+
+  document
+    .getElementById(
+      "dateInput"
+    )
+    .value =
+      yyyy +
+      "-" +
+      mm +
+      "-" +
+      dd;
+
+}
+
+
+/************************************************************
+ * EVENTS
+ ************************************************************/
+
+function bindEvents() {
+
+  document
+    .getElementById(
+      "arrBtn"
+    )
+    .onclick =
+      function() {
+
+        setDirection(
+          "arr"
+        );
+
+      };
+
+
+  document
+    .getElementById(
+      "depBtn"
+    )
+    .onclick =
+      function() {
+
+        setDirection(
+          "dep"
+        );
+
+      };
+
+
+  document
+    .getElementById(
+      "queryBtn"
+    )
+    .onclick =
+      searchFlights;
+
+
+  document
+    .getElementById(
+      "filterChip"
+    )
+    .onclick =
+      clearAirportFilter;
+
+
+  document
+    .getElementById(
+      "closeDetail"
+    )
+    .onclick =
+      closeDetail;
+
+
+  document
+    .getElementById(
+      "mapAirportBtn"
+    )
+    .onclick =
+      searchAirportOnMap;
+
+
+  document
+    .getElementById(
+      "copyRouteBtn"
+    )
+    .onclick =
+      copyRouteText;
+
+
+  document
+    .getElementById(
+      "copyOriginalBtn"
+    )
+    .onclick =
+      copyOriginalText;
+
+
+  document
+    .getElementById(
+      "airportInput"
+    )
+    .addEventListener(
+      "keydown",
+      function(e) {
+
+        if (
+          e.key ===
+          "Enter"
+        ) {
+
+          searchFlights();
+
+        }
+
+      }
+    );
+
+
+  document
+    .getElementById(
+      "mapAirportInput"
+    )
+    .addEventListener(
+      "keydown",
+      function(e) {
+
+        if (
+          e.key ===
+          "Enter"
+        ) {
+
+          searchAirportOnMap();
+
+        }
+
+      }
+    );
+
+
+  [
+    "airportInput",
+    "mapAirportInput"
+  ]
+  .forEach(
+    function(id) {
+
+      document
+        .getElementById(
+          id
+        )
+        .addEventListener(
+          "input",
+          function() {
+
+            this.value =
+              this.value
+                .toUpperCase()
+                .replace(
+                  /[^A-Z]/g,
+                  ""
+                )
+                .slice(
+                  0,
+                  4
+                );
+
+          }
+        );
+
     }
   );
 
 }
 
 
-function queueNominatimRequest(task) {
+/************************************************************
+ * MODE
+ ************************************************************/
 
-  const run = async function() {
+function setDirection(
+  mode
+) {
 
-    const elapsed =
-      Date.now() -
-      lastNominatimRequestAt;
-
-
-    const waitMs =
-      1100 - elapsed;
-
-
-    if (waitMs > 0) {
-      await sleepMs(waitMs);
-    }
+  direction =
+    mode ===
+    "arr"
+      ? "arr"
+      : "dep";
 
 
-    lastNominatimRequestAt =
-      Date.now();
-
-
-    return task();
-
-  };
-
-
-  const queued =
-    nominatimQueue.then(
-      run,
-      run
+  document
+    .getElementById(
+      "arrBtn"
+    )
+    .classList
+    .toggle(
+      "active",
+      direction ===
+        "arr"
     );
 
 
-  nominatimQueue =
-    queued.catch(
-      function() {}
+  document
+    .getElementById(
+      "depBtn"
+    )
+    .classList
+    .toggle(
+      "active",
+      direction ===
+        "dep"
     );
-
-
-  return queued;
 
 }
 
+
+/************************************************************
+ * KML
+ ************************************************************/
+
+async function refreshAirportKml() {
+
+  const response =
+    await fetch(
+      NDB_KML_URL,
+      {
+        cache:
+          "force-cache"
+      }
+    );
+
+
+  if (
+    !response.ok
+  ) {
+
+    throw new Error(
+      "KML HTTP " +
+      response.status
+    );
+
+  }
+
+
+  const text =
+    await response.text();
+
+
+  const db =
+    buildAirportDbFromKml(
+      text
+    );
+
+
+  if (
+    Object.keys(
+      db
+    ).length
+  ) {
+
+    airportDb =
+      db;
+
+
+    saveJsonStorage(
+      KML_STORAGE_KEY,
+      db
+    );
+
+  }
+
+}
+
+
+/************************************************************
+ * KML PARSER
+ ************************************************************/
+
+function buildAirportDbFromKml(
+  text
+) {
+
+  const xml =
+    new DOMParser()
+      .parseFromString(
+        text,
+        "application/xml"
+      );
+
+
+  const result =
+    {};
+
+
+  const placemarks =
+    Array.from(
+      xml.getElementsByTagName(
+        "Placemark"
+      )
+    );
+
+
+  placemarks.forEach(
+    function(pm) {
+
+      const point =
+        pm.getElementsByTagName(
+          "Point"
+        )[0];
+
+
+      if (!point) {
+
+        return;
+
+      }
+
+
+      const coordNode =
+        point.getElementsByTagName(
+          "coordinates"
+        )[0];
+
+
+      if (!coordNode) {
+
+        return;
+
+      }
+
+
+      const nameNode =
+        pm.getElementsByTagName(
+          "name"
+        )[0];
+
+
+      const rawName =
+        nameNode
+          ? String(
+              nameNode.textContent ||
+              ""
+            ).trim()
+          : "";
+
+
+      const match =
+        rawName
+          .toUpperCase()
+          .match(
+            /\b[A-Z]{4}\b/
+          );
+
+
+      if (!match) {
+
+        return;
+
+      }
+
+
+      const code =
+        match[0];
+
+
+      const coordText =
+        String(
+          coordNode.textContent ||
+          ""
+        )
+        .trim()
+        .split(
+          /\s+/
+        )[0];
+
+
+      const parts =
+        coordText.split(
+          ","
+        );
+
+
+      if (
+        parts.length <
+          2
+      ) {
+
+        return;
+
+      }
+
+
+      const lon =
+        Number(
+          parts[0]
+        );
+
+
+      const lat =
+        Number(
+          parts[1]
+        );
+
+
+      if (
+        !Number.isFinite(
+          lat
+        ) ||
+        !Number.isFinite(
+          lon
+        )
+      ) {
+
+        return;
+
+      }
+
+
+      result[
+        code
+      ] = {
+
+        icao:
+          code,
+
+        lat:
+          lat,
+
+        lon:
+          lon,
+
+        source:
+          "KML"
+
+      };
+
+    }
+  );
+
+
+  return result;
+
+}
+
+
+/************************************************************
+ * ICAO
+ ************************************************************/
+
+function normalizeIcao(
+  value
+) {
+
+  const code =
+    String(
+      value ||
+      ""
+    )
+      .trim()
+      .toUpperCase();
+
+
+  return /^[A-Z]{4}$/.test(
+    code
+  )
+    ? code
+    : "";
+
+}
+
+
+/************************************************************
+ * LOCAL LOOKUP
+ *
+ * KML 우선.
+ *
+ * KML에 있으면 API 호출이 필요 없음.
+ ************************************************************/
+
+function getAirportLocalOnly(
+  code
+) {
+
+  code =
+    normalizeIcao(
+      code
+    );
+
+
+  if (!code) {
+
+    return null;
+
+  }
+
+
+  /**********************************************************
+   * 1. KML
+   **********************************************************/
+
+  if (
+    airportDb[
+      code
+    ]
+  ) {
+
+    return airportDb[
+      code
+    ];
+
+  }
+
+
+  /**********************************************************
+   * 2. PERMANENT CACHE
+   **********************************************************/
+
+  if (
+    fallbackAirportCache[
+      code
+    ]
+  ) {
+
+    return fallbackAirportCache[
+      code
+    ];
+
+  }
+
+
+  return null;
+
+}
+
+
+/************************************************************
+ * AIRPORT-DATA
+ *
+ * ARR/DEP fallback 1차.
+ ************************************************************/
+
+async function lookupAirportDataApi(
+  code
+) {
+
+  code =
+    normalizeIcao(
+      code
+    );
+
+
+  if (!code) {
+
+    return null;
+
+  }
+
+
+  const key =
+    "airportdata_" +
+    code;
+
+
+  if (
+    pendingAirportLookups[
+      key
+    ]
+  ) {
+
+    return pendingAirportLookups[
+      key
+    ];
+
+  }
+
+
+  pendingAirportLookups[
+    key
+  ] =
+    (async function() {
+
+      try {
+
+        const url =
+          AIRPORT_DATA_API +
+          encodeURIComponent(
+            code
+          );
+
+
+        const response =
+          await fetch(
+            url,
+            {
+              cache:
+                "no-store"
+            }
+          );
+
+
+        if (
+          !response.ok
+        ) {
+
+          return null;
+
+        }
+
+
+        const data =
+          await response.json();
+
+
+        if (!data) {
+
+          return null;
+
+        }
+
+
+        if (
+          data.status &&
+          Number(
+            data.status
+          ) !==
+            200
+        ) {
+
+          return null;
+
+        }
+
+
+        const returnedIcao =
+          String(
+            data.icao ||
+            ""
+          )
+          .trim()
+          .toUpperCase();
+
+
+        /*
+         * Airport-Data 결과가 요청 ICAO와 정확히 일치할 때만 사용.
+         */
+        if (
+          returnedIcao !==
+          code
+        ) {
+
+          return null;
+
+        }
+
+
+        const lat =
+          firstFiniteNumber(
+
+            data.latitude,
+
+            data.lat,
+
+            data.latitude_deg
+
+          );
+
+
+        const lon =
+          firstFiniteNumber(
+
+            data.longitude,
+
+            data.lon,
+
+            data.lng,
+
+            data.longitude_deg
+
+          );
+
+
+        if (
+          !Number.isFinite(
+            lat
+          ) ||
+          !Number.isFinite(
+            lon
+          )
+        ) {
+
+          return null;
+
+        }
+
+
+        const airport =
+          {
+
+            icao:
+              code,
+
+            lat:
+              lat,
+
+            lon:
+              lon,
+
+            displayName:
+              "",
+
+            source:
+              "Airport-Data"
+
+          };
+
+
+        saveAirportToPermanentCache(
+          airport
+        );
+
+
+        return airport;
+
+
+      } catch (
+        err
+      ) {
+
+        console.warn(
+          "Airport-Data failed:",
+          code,
+          err
+        );
+
+
+        return null;
+
+
+      } finally {
+
+        delete pendingAirportLookups[
+          key
+        ];
+
+      }
+
+    })();
+
+
+  return pendingAirportLookups[
+    key
+  ];
+
+}
+
+
+/************************************************************
+ * NOMINATIM
+ *
+ * ARTCC 앱과 동일한 기본 방식:
+ *
+ * q = ICAO + " airport"
+ *
+ * 좌표만 사용
+ ************************************************************/
 
 async function geocodeAirportByNominatim(
   code
@@ -1302,7 +2592,9 @@ async function geocodeAirportByNominatim(
 
 
   if (!code) {
+
     return null;
+
   }
 
 
@@ -1322,100 +2614,133 @@ async function geocodeAirportByNominatim(
   pendingNominatimLookups[
     code
   ] =
-    queueNominatimRequest(
-      async function() {
+    (async function() {
 
-        try {
+      try {
 
-          const url =
-            NOMINATIM_URL +
-            "?format=json" +
-            "&limit=1" +
-            "&q=" +
-            encodeURIComponent(
-              code +
-              " airport"
-            );
+        const url =
+          NOMINATIM_URL +
 
+          "?format=json" +
 
-          const response =
-            await fetch(
-              url,
-              {
-                headers: {
-                  Accept:
-                    "application/json"
-                }
-              }
-            );
+          "&limit=1" +
 
-
-          if (!response.ok) {
-            return null;
-          }
-
-
-          const data =
-            await response.json();
-
-
-          if (
-            !Array.isArray(data) ||
-            !data.length
-          ) {
-            return null;
-          }
-
-
-          const item =
-            data[0];
-
-
-          const lat =
-            Number(item.lat);
-
-
-          const lon =
-            Number(item.lon);
-
-
-          if (
-            !Number.isFinite(lat) ||
-            !Number.isFinite(lon)
-          ) {
-            return null;
-          }
-
-
-          return {
-            icao: code,
-            lat: lat,
-            lon: lon,
-            source: "Nominatim"
-          };
-
-
-        } catch (err) {
-
-          console.warn(
-            "Nominatim failed:",
-            code,
-            err
+          "&q=" +
+          encodeURIComponent(
+            code +
+            " airport"
           );
+
+
+        const response =
+          await fetch(
+            url,
+            {
+              headers: {
+
+                Accept:
+                  "application/json"
+
+              }
+            }
+          );
+
+
+        if (
+          !response.ok
+        ) {
 
           return null;
 
+        }
 
-        } finally {
 
-          delete pendingNominatimLookups[
-            code
-          ];
+        const data =
+          await response.json();
+
+
+        if (
+          !Array.isArray(
+            data
+          ) ||
+          !data.length
+        ) {
+
+          return null;
 
         }
 
+
+        const item =
+          data[0];
+
+
+        const lat =
+          Number(
+            item.lat
+          );
+
+
+        const lon =
+          Number(
+            item.lon
+          );
+
+
+        if (
+          !Number.isFinite(
+            lat
+          ) ||
+          !Number.isFinite(
+            lon
+          )
+        ) {
+
+          return null;
+
+        }
+
+
+        return {
+
+          icao:
+            code,
+
+          lat:
+            lat,
+
+          lon:
+            lon,
+
+          source:
+            "Nominatim"
+
+        };
+
+
+      } catch (
+        err
+      ) {
+
+        console.warn(
+          "Nominatim failed:",
+          code,
+          err
+        );
+
+
+        return null;
+
+
+      } finally {
+
+        delete pendingNominatimLookups[
+          code
+        ];
+
       }
-    );
+
+    })();
 
 
   return pendingNominatimLookups[
@@ -1426,17 +2751,16 @@ async function geocodeAirportByNominatim(
 
 
 /************************************************************
- * AIRPORT RESOLVER
+ * ARR / DEP AIRPORT RESOLVER
  *
- * ARR / DEP 결과와 오른쪽 하단 AIRPORT 검색이
- * 동일한 resolver를 사용한다.
+ * 중요:
  *
- * 1. ACJ_NDB.kml
- * 2. permanent localStorage cache
- * 3. Airport-Data ICAO API
- * 4. Nominatim
+ * 1 KML
+ * 2 permanent cache
+ * 3 Airport-Data
+ * 4 Nominatim
  *
- * KML에 공항이 있으면 외부 API 호출 0회.
+ * KML에 있으면 3,4 호출 안 함.
  ************************************************************/
 
 async function resolveAirportForFlightMap(
@@ -1450,7 +2774,9 @@ async function resolveAirportForFlightMap(
 
 
   if (!code) {
+
     return null;
+
   }
 
 
@@ -1541,6 +2867,11 @@ async function resolveAirportForFlightMap(
     )
   ) {
 
+    /*
+     * ARR/DEP에서 Nominatim까지 왔다면
+     * 영구 cache 저장.
+     */
+
     saveAirportToPermanentCache(
       nominatim
     );
@@ -1554,7 +2885,6 @@ async function resolveAirportForFlightMap(
   return null;
 
 }
-
 
 
 /************************************************************
@@ -3297,28 +4627,29 @@ function createSearchAirportMarker(
 /************************************************************
  * BOTTOM-RIGHT AIRPORT SEARCH
  *
- * 주소/공항명 popup 없음.
+ * 공항 좌표 검색 순서:
  *
  * 1. ACJ_NDB.kml
  * 2. permanent localStorage cache
  * 3. Airport-Data ICAO API
  * 4. Nominatim
  *
- * 좌표만 확보해서
- * ICAO 라벨 + ▼ marker만 표시한다.
- *
- * UBIKAIS 리스트는 변경하지 않는다.
+ * 주소/공항명 popup은 표시하지 않음.
+ * ICAO + ▼ marker만 표시.
+ * UBIKAIS 리스트는 변경 안 함.
  ************************************************************/
 
 async function searchAirportOnMap() {
 
   const code =
     normalizeIcao(
+
       document
         .getElementById(
           "mapAirportInput"
         )
         .value
+
     );
 
 
@@ -3372,7 +4703,7 @@ async function searchAirportOnMap() {
 
       alert(
         code +
-        " 공항을 찾을 수 없습니다."
+        " 공항 위치를 찾을 수 없습니다."
       );
 
       return;
@@ -3391,11 +4722,6 @@ async function searchAirportOnMap() {
           .getCenter()
           .lng
       );
-
-
-    if (!latlng) {
-      return;
-    }
 
 
     const marker =
@@ -3420,18 +4746,12 @@ async function searchAirportOnMap() {
     );
 
 
-    /*
-     * popup 없음
-     * 주소 없음
-     * 공항명 없음
-     * 왼쪽 UBIKAIS 결과 변경 없음
-     */
-
-
-  } catch (err) {
+  } catch (
+    err
+  ) {
 
     console.error(
-      "Airport search failed:",
+      "Manual airport search failed:",
       err
     );
 
@@ -3454,7 +4774,6 @@ async function searchAirportOnMap() {
   }
 
 }
-
 
 
 /************************************************************
