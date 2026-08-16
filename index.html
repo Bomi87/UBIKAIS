@@ -1486,7 +1486,6 @@ let airportDb =
   loadJsonStorage(
     KML_STORAGE_KEY
   );
-let airportKmlLoadPromise = null;
 
 
 /*
@@ -1696,18 +1695,17 @@ function startUbikaisAfterAuth() {
   bindEvents();
 
 
-  airportKmlLoadPromise =
-    refreshAirportKml()
-      .catch(
-        function(err) {
+  refreshAirportKml()
+    .catch(
+      function(err) {
 
-          console.warn(
-            "KML refresh failed:",
-            err
-          );
+        console.warn(
+          "KML refresh failed:",
+          err
+        );
 
-        }
-      );
+      }
+    );
 
 
   /*
@@ -2750,9 +2748,12 @@ async function resolveAirportForFlightMap(code) {
   /********************************************************
    * 1) KML / permanent localStorage
    *    → 있으면 즉시 반환
+   *
+   * 오른쪽 아래 공항검색은 KML background refresh를
+   * 기다리지 않는다.
    ********************************************************/
 
-  let local =
+  const local =
     getAirportLocalOnly(
       code
     );
@@ -2767,41 +2768,14 @@ async function resolveAirportForFlightMap(code) {
 
 
   /********************************************************
-   * 2) KML background loading race 방지
+   * 2) 진짜 local miss만 Apps Script fallback 1회
    *
-   * KML이 아직 로딩 중이면 같은 Promise를 기다린 뒤
-   * local DB를 다시 확인한다.
+   * Backend:
+   *   existing airport cache
+   *   → Airport-Data
+   *   → Nominatim
    *
-   * KEWR처럼 KML에 실제 존재하는 공항은 여기에서 잡혀서
-   * Apps Script fallback으로 넘어가지 않는다.
-   ********************************************************/
-
-  if (
-    airportKmlLoadPromise
-  ) {
-
-    try {
-      await airportKmlLoadPromise;
-    } catch (_) {}
-
-    local =
-      getAirportLocalOnly(
-        code
-      );
-
-    if (
-      isValidAirportCoordinate(
-        local
-      )
-    ) {
-      return local;
-    }
-
-  }
-
-
-  /********************************************************
-   * 3) 진짜 KML/local miss만 Apps Script fallback
+   * ATS / FPL / CHG / 왼쪽 목록과 완전히 독립.
    ********************************************************/
 
   const backendAirport =
@@ -3779,7 +3753,7 @@ async function searchFlights() {
       thisSearchId
     );
     /*
-     * V32:
+     * V33:
      * ATS PLAN DEP/ARR is already batch-resolved by the backend.
      * No per-flight background Apps Script calls are started here.
      */
