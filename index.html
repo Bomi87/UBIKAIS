@@ -361,27 +361,22 @@ input {
 
 .flight-ident {
   min-width: 0;
-
   overflow: hidden;
-
   white-space: nowrap;
-
   text-overflow: ellipsis;
-
-  color: #374151;
-
-  font-size: 11px;
-  font-weight: 850;
+  color: #111827;
+  font-size: 14px;
+  line-height: 1.18;
+  font-weight: 950;
 }
 
 
 .airline-name {
-  margin-left: 3px;
-
+  margin-left: 4px;
   color: #6b7280;
-
-  font-size: 9.5px;
-  font-weight: 650;
+  font-size: 10px;
+  line-height: 1.15;
+  font-weight: 750;
 }
 
 
@@ -407,17 +402,12 @@ input {
 
 .flight-leg {
   display: flex;
-
   align-items: baseline;
-
   flex-wrap: wrap;
-
-  margin-top: 4px;
-
-  font-size: 17px;
-  line-height: 1.22;
-
-  font-weight: 950;
+  margin-top: 5px;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 900;
 }
 
 
@@ -1355,107 +1345,104 @@ const COUNTRY_COLORS = {
  ************************************************************/
 
 const AIRLINE_MAP = {
+  // Korea
+  KAL:"Korean Air", AAR:"Asiana Airlines", JJA:"Jeju Air", JNA:"Jin Air",
+  TWB:"T'way Air", ESR:"Eastar Jet", APZ:"Air Premia", AIH:"Air Incheon",
+  ABL:"Air Busan", ASV:"Air Seoul", KOR:"Korean Air Business Jet",
 
-  KAL:"Korean Air",
-  AAR:"Asiana Airlines",
-  JJA:"Jeju Air",
-  JNA:"Jin Air",
-  TWB:"T'way Air",
-  ESR:"Eastar Jet",
-  APZ:"Air Premia",
-  AIH:"Air Incheon",
-  ABL:"Air Busan",
-  ASV:"Air Seoul",
+  // Japan
+  JAL:"Japan Airlines", ANA:"All Nippon Airways", APJ:"Peach Aviation",
+  JJP:"Jetstar Japan", SKY:"Skymark Airlines", SNJ:"Solaseed Air",
+  TZP:"ZIPAIR Tokyo", SFJ:"StarFlyer", IBX:"IBEX Airlines", ORC:"Oriental Air Bridge",
 
-  JAL:"Japan Airlines",
-  ANA:"All Nippon Airways",
-  APJ:"Peach Aviation",
-  JJP:"Jetstar Japan",
-  SKY:"Skymark Airlines",
-  SNJ:"Solaseed Air",
-  TZP:"ZIPAIR Tokyo",
+  // China / Hong Kong / Macau
+  CCA:"Air China", CES:"China Eastern Airlines", CSN:"China Southern Airlines",
+  CXA:"Xiamen Airlines", CHH:"Hainan Airlines", CSZ:"Shenzhen Airlines",
+  CQH:"Spring Airlines", DKH:"Juneyao Air", CSC:"Sichuan Airlines",
+  CDG:"Shandong Airlines", GCR:"Tianjin Airlines", CBJ:"Beijing Capital Airlines",
+  HXA:"China Express Airlines", HNA:"Hainan Airlines", CPA:"Cathay Pacific",
+  CRK:"Hong Kong Airlines", HKE:"HK Express", AMU:"Air Macau",
+  HGB:"Greater Bay Airlines",
 
-  EVA:"EVA Air",
-  CAL:"China Airlines",
-  SJX:"STARLUX Airlines",
-  TTW:"Tigerair Taiwan",
+  // Taiwan
+  EVA:"EVA Air", CAL:"China Airlines", SJX:"STARLUX Airlines",
+  TTW:"Tigerair Taiwan", UIA:"Uni Air", MDA:"Mandarin Airlines",
 
-  CCA:"Air China",
-  CES:"China Eastern Airlines",
-  CSN:"China Southern Airlines",
-  CXA:"Xiamen Airlines",
-  CHH:"Hainan Airlines",
-  CSZ:"Shenzhen Airlines",
-  CQH:"Spring Airlines",
-  DKH:"Juneyao Air",
+  // Southeast Asia
+  SIA:"Singapore Airlines", TGW:"Scoot", MAS:"Malaysia Airlines",
+  AXM:"AirAsia", MXD:"Batik Air Malaysia", THA:"Thai Airways",
+  AIQ:"Thai AirAsia", TLM:"Thai Lion Air", NOK:"Nok Air",
+  PAL:"Philippine Airlines", CEB:"Cebu Pacific", GAP:"Philippines AirAsia",
+  GIA:"Garuda Indonesia", LNI:"Lion Air", BTK:"Batik Air", CTV:"Citilink",
+  HVN:"Vietnam Airlines", VJC:"VietJet Air", PIC:"Pacific Airlines",
+  RBA:"Royal Brunei Airlines", LAO:"Lao Airlines", KHV:"Cambodia Angkor Air",
+  BML:"Bamboo Airways", MYU:"Myanmar Airways International",
 
-  CPA:"Cathay Pacific",
-  CRK:"Hong Kong Airlines",
-  HKE:"HK Express",
-  AMU:"Air Macau",
+  // India / South Asia
+  AIC:"Air India", IGO:"IndiGo", VTI:"Vistara", AXB:"Air India Express",
+  SEJ:"SpiceJet", ALK:"SriLankan Airlines", BBC:"Biman Bangladesh Airlines",
+  RYL:"Royal Air Charter", PIA:"Pakistan International Airlines",
 
-  SIA:"Singapore Airlines",
-  TGW:"Scoot",
-  MAS:"Malaysia Airlines",
-  AXM:"AirAsia",
-  MXD:"Batik Air Malaysia",
-  THA:"Thai Airways",
-  PAL:"Philippine Airlines",
-  CEB:"Cebu Pacific",
-  GIA:"Garuda Indonesia",
-  HVN:"Vietnam Airlines",
-  VJC:"VietJet Air",
-  RBA:"Royal Brunei Airlines",
+  // Middle East
+  UAE:"Emirates", QTR:"Qatar Airways", ETD:"Etihad Airways", SVA:"Saudia",
+  GFA:"Gulf Air", OMA:"Oman Air", KAC:"Kuwait Airways", RJA:"Royal Jordanian",
+  MEA:"Middle East Airlines", FDB:"flydubai", ABY:"Air Arabia",
+  QAF:"Qatar Amiri Flight", UAE:"Emirates",
 
-  UAE:"Emirates",
-  QTR:"Qatar Airways",
-  ETD:"Etihad Airways",
-  SVA:"Saudia",
-  GFA:"Gulf Air",
-  OMA:"Oman Air",
-  KAC:"Kuwait Airways",
+  // Central Asia / Mongolia
+  MGL:"MIAT Mongolian Airlines", KZR:"Air Astana", UZB:"Uzbekistan Airways",
+  KZA:"Air Astana", TJK:"Somon Air", TUA:"Turkmenistan Airlines",
 
-  UAL:"United Airlines",
-  DAL:"Delta Air Lines",
-  AAL:"American Airlines",
-  ACA:"Air Canada",
-  WJA:"WestJet",
-  ASA:"Alaska Airlines",
-  HAL:"Hawaiian Airlines",
+  // USA / Canada
+  UAL:"United Airlines", DAL:"Delta Air Lines", AAL:"American Airlines",
+  ASA:"Alaska Airlines", HAL:"Hawaiian Airlines", JBU:"JetBlue Airways",
+  SWA:"Southwest Airlines", FFT:"Frontier Airlines", NKS:"Spirit Airlines",
+  SKW:"SkyWest Airlines", RPA:"Republic Airways", ENY:"Envoy Air",
+  JIA:"PSA Airlines", GJS:"GoJet Airlines", EDV:"Endeavor Air",
+  ACA:"Air Canada", WJA:"WestJet", JZA:"Jazz Aviation", TSC:"Air Transat",
+  ROY:"Air Canada Rouge", FLE:"Flair Airlines", PAL:"Provincial Airlines",
 
-  FDX:"FedEx Express",
-  UPS:"UPS Airlines",
-  GTI:"Atlas Air",
-  CLX:"Cargolux",
-  NCA:"Nippon Cargo Airlines",
+  // Cargo
+  FDX:"FedEx Express", UPS:"UPS Airlines", GTI:"Atlas Air", CLX:"Cargolux",
+  NCA:"Nippon Cargo Airlines", ABW:"AirBridgeCargo", BOX:"AeroLogic",
+  MNB:"MNG Airlines", KZR:"Air Astana", CKS:"Kalitta Air", PAC:"Polar Air Cargo",
+  SOO:"Southern Air", DHL:"DHL Air", BCS:"European Air Transport Leipzig",
 
-  AFR:"Air France",
-  BAW:"British Airways",
-  DLH:"Lufthansa",
-  KLM:"KLM",
-  FIN:"Finnair",
-  SAS:"SAS",
-  LOT:"LOT Polish Airlines",
-  SWR:"Swiss",
-  AUA:"Austrian Airlines",
-  ITY:"ITA Airways",
-  IBE:"Iberia",
-  THY:"Turkish Airlines",
-  VIR:"Virgin Atlantic",
+  // Europe
+  AFR:"Air France", BAW:"British Airways", DLH:"Lufthansa", KLM:"KLM",
+  FIN:"Finnair", SAS:"SAS", LOT:"LOT Polish Airlines", SWR:"Swiss",
+  AUA:"Austrian Airlines", ITY:"ITA Airways", IBE:"Iberia",
+  THY:"Turkish Airlines", VIR:"Virgin Atlantic", EIN:"Aer Lingus",
+  TAP:"TAP Air Portugal", BEL:"Brussels Airlines", ICE:"Icelandair",
+  NAX:"Norwegian", NSZ:"Norwegian Air Shuttle", WZZ:"Wizz Air",
+  RYR:"Ryanair", EZY:"easyJet", EXS:"Jet2", TOM:"TUI Airways",
+  CFG:"Condor", EWG:"Eurowings", TVF:"Transavia France", TRA:"Transavia",
+  VLG:"Vueling", ROT:"TAROM", CSA:"Czech Airlines", BTI:"airBaltic",
+  AEE:"Aegean Airlines", LOT:"LOT Polish Airlines", PGT:"Pegasus Airlines",
 
-  QFA:"Qantas",
-  ANZ:"Air New Zealand",
+  // Oceania
+  QFA:"Qantas", ANZ:"Air New Zealand", JST:"Jetstar Airways",
+  VOZ:"Virgin Australia", RXA:"Regional Express", FJI:"Fiji Airways",
 
-  ETH:"Ethiopian Airlines",
-  SAA:"South African Airways",
+  // Africa
+  ETH:"Ethiopian Airlines", SAA:"South African Airways", KQA:"Kenya Airways",
+  MSR:"EgyptAir", RAM:"Royal Air Maroc", RWD:"RwandAir", MAU:"Air Mauritius",
+  ANG:"Air Namibia", LNK:"Airlink",
 
-  MGL:"MIAT Mongolian Airlines",
-  KZR:"Air Astana",
-  UZB:"Uzbekistan Airways",
+  // Latin America
+  LAN:"LATAM Airlines", TAM:"LATAM Brasil", CMP:"Copa Airlines",
+  AVA:"Avianca", GLO:"GOL Linhas Aereas", AZU:"Azul Brazilian Airlines",
+  ARG:"Aerolineas Argentinas", AMX:"Aeromexico", VOI:"Volaris",
+  VIV:"Viva Aerobus", SKU:"SKY Airline", JAT:"JetSMART",
 
-  AIC:"Air India",
-  IGO:"IndiGo"
+  // Russia / CIS
+  AFL:"Aeroflot", SBI:"S7 Airlines", SDM:"Rossiya Airlines",
+  SVR:"Ural Airlines", UTN:"UTair", BRU:"Belavia",
 
+  // Common business / charter / government operators
+  VJT:"VistaJet", VJS:"VistaJet", NJE:"NetJets Europe", EJA:"NetJets Aviation",
+  LXJ:"Flexjet", XOJ:"XOJET Aviation", TWY:"Solairus Aviation",
+  GTH:"General Aviation", KAI:"Korea Aerospace Industries"
 };
 
 
@@ -2992,34 +2979,43 @@ function getQueryAirportCode() {
  ************************************************************/
 
 function getAirlineName(
-  flightNo
+  flightNo,
+  directAirlineName
 ) {
 
-  const match =
+  const direct =
+    String(
+      directAirlineName ||
+      ""
+    ).trim();
+
+  if (direct) {
+    return direct;
+  }
+
+  const normalized =
     String(
       flightNo ||
       ""
     )
       .toUpperCase()
-      .match(
-        /^[A-Z]{3}/
-      );
+      .replace(/[^A-Z0-9]/g, "");
 
+  const match =
+    normalized.match(
+      /^([A-Z]{3})/
+    );
 
   if (!match) {
-
     return "";
-
   }
-
 
   return (
     AIRLINE_MAP[
-      match[0]
+      match[1]
     ] ||
     ""
   );
-
 }
 
 
@@ -5098,7 +5094,8 @@ function openDetail(
 
   const airline =
     getAirlineName(
-      flight.flight
+      flight.flight,
+      flight.airlineName
     );
 
 
