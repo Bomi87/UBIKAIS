@@ -2439,18 +2439,28 @@ async function geocodeAirport(
 
 }
 
-
 /************************************************************
  * SEARCH DISPLAY INFO
  *
- * 좌표는 KML을 사용하더라도
- * 팝업 정보는 Nominatim으로 보완.
+ * 1순위: 이미 확보한 KML 좌표로 reverse geocoding
+ * 2순위: ICAO airport text search
+ *
+ * KEWR처럼 "KEWR airport" 검색이 안 잡혀도
+ * 좌표 기반으로 주소/공항정보를 가져올 수 있음.
  ************************************************************/
 
 async function getAirportDisplayInfo(
   code,
   airport
 ) {
+
+  code =
+    String(
+      code || ""
+    )
+      .trim()
+      .toUpperCase();
+
 
   let name =
     String(
@@ -2467,10 +2477,9 @@ async function getAirportDisplayInfo(
 
 
   /*
-   * KML 이름이 그냥 MMTO처럼 ICAO 코드만 있는 경우
-   * 이름으로 사용하지 않는다.
+   * KML name이 단순히 KEWR 같은 ICAO 코드면
+   * 이름으로 사용하지 않음.
    */
-
   if (
     name.toUpperCase() ===
     code
@@ -2482,61 +2491,262 @@ async function getAirportDisplayInfo(
   }
 
 
+  /**********************************************************
+   * STEP 1
+   *
+   * 좌표 기반 Reverse Geocoding
+   **********************************************************/
+
   try {
 
-    const url =
-      "https://nominatim.openstreetmap.org/search" +
-      "?format=json" +
-      "&addressdetails=1" +
-      "&namedetails=1" +
-      "&limit=1" +
-      "&q=" +
-      encodeURIComponent(
-        code +
-        " airport"
-      );
+    if (
+      airport &&
+      Number.isFinite(
+        Number(
+          airport.lat
+        )
+      ) &&
+      Number.isFinite(
+        Number(
+          airport.lon
+        )
+      )
+    ) {
+
+      const reverseUrl =
+        "https://nominatim.openstreetmap.org/reverse" +
+
+        "?format=jsonv2" +
+
+        "&addressdetails=1" +
+
+        "&namedetails=1" +
+
+        "&zoom=18" +
+
+        "&lat=" +
+        encodeURIComponent(
+          airport.lat
+        ) +
+
+        "&lon=" +
+        encodeURIComponent(
+          airport.lon
+        );
 
 
-    const res =
-      await fetch(
-        url,
-        {
+      const reverseRes =
+        await fetch(
+          reverseUrl,
+          {
+            headers: {
+              Accept:
+                "application/json"
+            }
+          }
+        );
 
-          headers: {
 
-            Accept:
-              "application/json"
+      if (
+        reverseRes.ok
+      ) {
+
+        const item =
+          await reverseRes.json();
+
+
+        if (
+          item
+        ) {
+
+          /****************************************************
+           * NAME
+           ****************************************************/
+
+          if (
+            item.namedetails
+          ) {
+
+            const englishName =
+              item.namedetails[
+                "name:en"
+              ];
+
+
+            const genericName =
+              item.namedetails[
+                "name"
+              ];
+
+
+            if (
+              englishName
+            ) {
+
+              name =
+                String(
+                  englishName
+                ).trim();
+
+            } else if (
+              genericName
+            ) {
+
+              name =
+                String(
+                  genericName
+                ).trim();
+
+            }
+
+          }
+
+
+          if (
+            (
+              !name ||
+              name.toUpperCase() ===
+                code
+            ) &&
+            item.name
+          ) {
+
+            name =
+              String(
+                item.name
+              ).trim();
+
+          }
+
+
+          /****************************************************
+           * ADDRESS
+           ****************************************************/
+
+          if (
+            item.display_name
+          ) {
+
+            address =
+              String(
+                item.display_name
+              ).trim();
 
           }
 
         }
-      );
+
+      }
+
+    }
+
+  } catch (err) {
+
+    console.warn(
+      "Reverse geocoding failed:",
+      code,
+      err
+    );
+
+  }
 
 
-    if (
-      res.ok
-    ) {
+  /**********************************************************
+   * STEP 2
+   *
+   * Reverse에서 정보가 부족한 경우에만
+   * ICAO Text Search fallback
+   **********************************************************/
 
-      const data =
-        await res.json();
+  if (
+    !name ||
+    !address
+  ) {
+
+    try {
+
+      const searchQueries = [
+
+        code,
+
+        code +
+        " international airport",
+
+        code +
+        " airport"
+
+      ];
 
 
-      if (
-        Array.isArray(
-          data
-        ) &&
-        data.length
+      for (
+        const query
+        of searchQueries
       ) {
+
+        const url =
+          "https://nominatim.openstreetmap.org/search" +
+
+          "?format=jsonv2" +
+
+          "&addressdetails=1" +
+
+          "&namedetails=1" +
+
+          "&limit=1" +
+
+          "&q=" +
+          encodeURIComponent(
+            query
+          );
+
+
+        const res =
+          await fetch(
+            url,
+            {
+              headers: {
+                Accept:
+                  "application/json"
+              }
+            }
+          );
+
+
+        if (
+          !res.ok
+        ) {
+
+          continue;
+
+        }
+
+
+        const data =
+          await res.json();
+
+
+        if (
+          !Array.isArray(
+            data
+          ) ||
+          !data.length
+        ) {
+
+          continue;
+
+        }
+
 
         const item =
           data[0];
 
 
         /******************************************************
-         * AIRPORT NAME
+         * NAME
          ******************************************************/
 
         if (
+          !name &&
           item.namedetails
         ) {
 
@@ -2576,11 +2786,7 @@ async function getAirportDisplayInfo(
 
 
         if (
-          (
-            !name ||
-            name.toUpperCase() ===
-              code
-          ) &&
+          !name &&
           item.name
         ) {
 
@@ -2597,6 +2803,7 @@ async function getAirportDisplayInfo(
          ******************************************************/
 
         if (
+          !address &&
           item.display_name
         ) {
 
@@ -2607,24 +2814,37 @@ async function getAirportDisplayInfo(
 
         }
 
+
+        /*
+         * 둘 다 찾았으면 더 검색할 필요 없음.
+         */
+        if (
+          name &&
+          address
+        ) {
+
+          break;
+
+        }
+
       }
 
+    } catch (err) {
+
+      console.warn(
+        "Airport text lookup failed:",
+        code,
+        err
+      );
+
     }
-
-  } catch (err) {
-
-    console.warn(
-      "Airport display info lookup failed:",
-      code,
-      err
-    );
 
   }
 
 
-  /*
-   * 마지막으로 ICAO 중복 제거
-   */
+  /**********************************************************
+   * 중복 ICAO 이름 제거
+   **********************************************************/
 
   if (
     name &&
@@ -2634,6 +2854,47 @@ async function getAirportDisplayInfo(
 
     name =
       "";
+
+  }
+
+
+  /**********************************************************
+   * display_name 맨 앞이 공항명과 동일하면
+   * 팝업에서 공항명이 두 번 보일 수 있음.
+   *
+   * 예:
+   * Newark Liberty International Airport
+   * Newark Liberty International Airport, Newark, NJ...
+   *
+   * → 주소에서는 첫 부분 제거
+   **********************************************************/
+
+  if (
+    name &&
+    address
+  ) {
+
+    const nameLower =
+      name.toLowerCase();
+
+
+    const addressLower =
+      address.toLowerCase();
+
+
+    if (
+      addressLower.startsWith(
+        nameLower + ","
+      )
+    ) {
+
+      address =
+        address.substring(
+          name.length + 1
+        )
+        .trim();
+
+    }
 
   }
 
@@ -2649,8 +2910,6 @@ async function getAirportDisplayInfo(
   };
 
 }
-
-
 /************************************************************
  * LONGITUDE
  ************************************************************/
