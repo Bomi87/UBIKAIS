@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta
   name="viewport"
-  content="width=device-width, initial-scale=1.0"
+  content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
 >
 
 <title>UBIKAIS ATS Flight Plan Map</title>
@@ -47,6 +47,15 @@ body {
 button,
 input {
   font-family: inherit;
+}
+
+
+#airportInput,
+#mapAirportInput {
+  font-size: 16px !important;
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 
@@ -1745,16 +1754,10 @@ let userMovedMap =
 
 /************************************************************
  * SKYVECTOR RETURN STATE
- *
- * iOS Safari가 SkyVector 창을 닫고 돌아올 때
- * 원래 UBIKAIS 페이지를 메모리에서 재로드하는 경우에만 사용.
- *
- * SkyVector 버튼을 누르는 순간의 현재 화면 상태를 sessionStorage에
- * 임시 저장하고, 새 문서로 다시 로드되었을 때 한 번 복원한다.
  ************************************************************/
 
 const SKYVECTOR_RETURN_STATE_KEY =
-  "UBIKAIS_SKYVECTOR_RETURN_STATE_V1";
+  "UBIKAIS_SKYVECTOR_RETURN_STATE_V2";
 
 
 function saveSkyVectorReturnState() {
@@ -1766,30 +1769,25 @@ function saveSkyVectorReturnState() {
         "dateInput"
       );
 
-
     const airportInput =
       document.getElementById(
         "airportInput"
       );
-
 
     const detailPanel =
       document.getElementById(
         "detailPanel"
       );
 
-
     const changeSection =
       document.getElementById(
         "changeSection"
       );
 
-
     const center =
       map
         ? map.getCenter()
         : null;
-
 
     const state = {
 
@@ -1873,14 +1871,14 @@ function saveSkyVectorReturnState() {
 
     };
 
-
-    sessionStorage.setItem(
+    localStorage.setItem(
       SKYVECTOR_RETURN_STATE_KEY,
       JSON.stringify(
         state
       )
     );
 
+    return true;
 
   } catch (
     err
@@ -1891,6 +1889,8 @@ function saveSkyVectorReturnState() {
       err
     );
 
+    return false;
+
   }
 
 }
@@ -1900,7 +1900,7 @@ function clearSkyVectorReturnState() {
 
   try {
 
-    sessionStorage.removeItem(
+    localStorage.removeItem(
       SKYVECTOR_RETURN_STATE_KEY
     );
 
@@ -1913,9 +1913,8 @@ function clearSkyVectorReturnState() {
 
 function armSkyVectorSameDocumentCleanup() {
 
-  let becameHidden =
+  let wentHidden =
     document.hidden;
-
 
   function handleVisibility() {
 
@@ -1923,28 +1922,18 @@ function armSkyVectorSameDocumentCleanup() {
       document.hidden
     ) {
 
-      becameHidden =
+      wentHidden =
         true;
 
       return;
 
     }
 
-
     if (
-      becameHidden
+      wentHidden
     ) {
 
-      /*
-       * 같은 문서가 그대로 살아서 돌아온 경우에는
-       * 복원할 필요가 없으므로 임시 상태를 삭제.
-       *
-       * 페이지가 iOS에 의해 재로드된 경우 이 listener 자체가
-       * 사라지므로 새 문서에서 restore가 정상 실행된다.
-       */
-
       clearSkyVectorReturnState();
-
 
       document
         .removeEventListener(
@@ -1955,7 +1944,6 @@ function armSkyVectorSameDocumentCleanup() {
     }
 
   }
-
 
   document
     .addEventListener(
@@ -1971,25 +1959,21 @@ async function restoreSkyVectorReturnState() {
   let state =
     null;
 
-
   try {
 
     const raw =
-      sessionStorage.getItem(
+      localStorage.getItem(
         SKYVECTOR_RETURN_STATE_KEY
       );
-
 
     if (!raw) {
       return false;
     }
 
-
     state =
       JSON.parse(
         raw
       );
-
 
   } catch (
     err
@@ -2001,11 +1985,6 @@ async function restoreSkyVectorReturnState() {
 
   }
 
-
-  /*
-   * 오래된 SkyVector 상태는 복원하지 않는다.
-   */
-
   if (
     !state ||
     !state.savedAt ||
@@ -2013,7 +1992,7 @@ async function restoreSkyVectorReturnState() {
       Number(
         state.savedAt
       ) >
-      30 * 60 * 1000
+      2 * 60 * 60 * 1000
   ) {
 
     clearSkyVectorReturnState();
@@ -2022,7 +2001,6 @@ async function restoreSkyVectorReturnState() {
 
   }
 
-
   try {
 
     const dateInput =
@@ -2030,12 +2008,10 @@ async function restoreSkyVectorReturnState() {
         "dateInput"
       );
 
-
     const airportInput =
       document.getElementById(
         "airportInput"
       );
-
 
     if (
       dateInput &&
@@ -2047,19 +2023,22 @@ async function restoreSkyVectorReturnState() {
 
     }
 
-
     if (
       airportInput &&
       state.airport
     ) {
 
       airportInput.value =
-        normalizeIcao(
+        String(
           state.airport
-        );
+        )
+          .toUpperCase()
+          .slice(
+            0,
+            4
+          );
 
     }
-
 
     setDirection(
       state.direction ===
@@ -2068,7 +2047,6 @@ async function restoreSkyVectorReturnState() {
         : "dep"
     );
 
-
     allFlights =
       Array.isArray(
         state.allFlights
@@ -2076,20 +2054,16 @@ async function restoreSkyVectorReturnState() {
         ? state.allFlights
         : [];
 
-
     airportFilter =
       normalizeIcao(
         state.airportFilter ||
         ""
       );
 
-
     refreshVisibleFlightsAfterAts();
-
 
     selectedFlight =
       null;
-
 
     if (
       state.selectedFlightKey
@@ -2112,18 +2086,14 @@ async function restoreSkyVectorReturnState() {
 
     }
 
-
     renderFlightList();
 
-
     activeSearchId++;
-
 
     renderResultAirportsFast(
       activeSearchId,
       true
     );
-
 
     if (
       selectedFlight
@@ -2137,7 +2107,6 @@ async function restoreSkyVectorReturnState() {
           selectedFlight
         );
 
-
         document
           .getElementById(
             "routeBox"
@@ -2145,7 +2114,6 @@ async function restoreSkyVectorReturnState() {
           .textContent =
             state.routeText ||
             "";
-
 
         document
           .getElementById(
@@ -2155,7 +2123,6 @@ async function restoreSkyVectorReturnState() {
             state.originalText ||
             "";
 
-
         document
           .getElementById(
             "changeBox"
@@ -2163,7 +2130,6 @@ async function restoreSkyVectorReturnState() {
           .textContent =
             state.changeText ||
             "";
-
 
         document
           .getElementById(
@@ -2176,13 +2142,11 @@ async function restoreSkyVectorReturnState() {
 
       }
 
-
       await drawSelectedLeg(
         selectedFlight
       );
 
     }
-
 
     if (
       map &&
@@ -2228,11 +2192,9 @@ async function restoreSkyVectorReturnState() {
 
     }
 
-
     clearSkyVectorReturnState();
 
     return true;
-
 
   } catch (
     err
@@ -2242,7 +2204,6 @@ async function restoreSkyVectorReturnState() {
       "SkyVector return state restore failed:",
       err
     );
-
 
     clearSkyVectorReturnState();
 
