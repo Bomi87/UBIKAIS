@@ -1,39 +1,47 @@
 <!DOCTYPE html>
+
 <html lang="ko">
 
 <head>
 
-  <meta charset="utf-8" />
+<meta charset="utf-8">
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1"
+>
 
-  <title>UBIKAIS ATS Flight Plan Map</title>
+<title>
+  UBIKAIS ATS Flight Plan Map
+</title>
 
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
 
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
-  </script>
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+
+
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+</script>
 
 
 <style>
 
 /************************************************************
- * RESET
+ * BASIC
  ************************************************************/
 
 html,
 body {
+
+  margin: 0;
+
   width: 100%;
   height: 100%;
-  margin: 0;
-  padding: 0;
+
+  overflow: hidden;
 
   font-family:
     -apple-system,
@@ -43,9 +51,6 @@ body {
     Arial,
     sans-serif;
 
-  overflow: hidden;
-
-  background: #eef2f7;
 }
 
 
@@ -54,19 +59,28 @@ body {
 }
 
 
+button,
+input {
+  font-family: inherit;
+}
+
+
+
 /************************************************************
  * MAP
  ************************************************************/
 
 #map {
+
   position: fixed;
+
   inset: 0;
 
   width: 100vw;
   height: 100vh;
 
-  z-index: 1;
 }
+
 
 
 /************************************************************
@@ -80,68 +94,82 @@ body {
   top: 12px;
   left: 12px;
 
-  width: 350px;
+  z-index: 1100;
+
+  width: 360px;
 
   max-height:
     calc(100vh - 24px);
 
-  z-index: 1100;
-
   display: flex;
+
   flex-direction: column;
 
-  overflow: hidden;
-
   background:
-    rgba(255,255,255,0.97);
+    rgba(
+      255,
+      255,
+      255,
+      .97
+    );
 
   border-radius: 14px;
 
   box-shadow:
-    0 4px 18px
-    rgba(0,0,0,0.22);
+    0 3px 16px
+    rgba(0,0,0,.25);
+
+  overflow: hidden;
+
 }
 
 
-.panel-header {
+.left-header {
 
-  padding: 13px;
+  flex: 0 0 auto;
+
+  padding: 12px;
 
   border-bottom:
     1px solid #e5e7eb;
+
 }
 
 
 .title {
 
-  font-size: 16px;
-  font-weight: 800;
+  margin-bottom: 10px;
 
   color: #111827;
 
-  margin-bottom: 10px;
+  font-size: 16px;
+
+  font-weight: 800;
+
 }
 
 
-.control-row {
-  margin-bottom: 8px;
-}
-
-
-.control-row label {
-
-  display: block;
+.label {
 
   margin-bottom: 4px;
 
   color: #4b5563;
 
   font-size: 11px;
+
   font-weight: 700;
+
 }
 
 
-.control-row input {
+.row {
+
+  margin-bottom: 8px;
+
+}
+
+
+input {
 
   width: 100%;
 
@@ -152,17 +180,17 @@ body {
 
   border-radius: 8px;
 
-  background: white;
-
   font-size: 13px;
+
 }
 
 
+
 /************************************************************
- * ARR / DEP TOGGLE
+ * ARR / DEP
  ************************************************************/
 
-.direction-buttons {
+.mode-buttons {
 
   display: grid;
 
@@ -172,39 +200,46 @@ body {
   gap: 6px;
 
   margin-bottom: 8px;
+
 }
 
 
-.direction-button {
+.mode-button {
 
-  border: 0;
-
-  padding: 9px;
+  border: none;
 
   border-radius: 8px;
 
-  background: #6b7280;
+  padding: 9px;
+
+  background:
+    #6b7280;
 
   color: white;
 
   font-size: 12px;
+
   font-weight: 800;
 
   cursor: pointer;
+
 }
 
 
-.direction-button.active {
+.mode-button.active {
 
-  background: #2563eb;
+  background:
+    #2563eb;
+
 }
+
 
 
 /************************************************************
- * SEARCH
+ * MAIN SEARCH
  ************************************************************/
 
-.main-search-row {
+.query-row {
 
   display: grid;
 
@@ -212,219 +247,275 @@ body {
     1fr 82px;
 
   gap: 6px;
+
 }
 
 
-.main-search-button {
+.search-button {
 
-  border: 0;
+  border: none;
 
   border-radius: 8px;
 
-  background: #111827;
+  background:
+    #111827;
 
   color: white;
 
   font-size: 12px;
+
   font-weight: 800;
 
   cursor: pointer;
+
 }
 
 
-.main-search-button:hover {
-  background: #374151;
+.search-button:disabled {
+
+  background:
+    #9ca3af;
+
+  cursor:
+    not-allowed;
+
 }
 
-
-.main-search-button:disabled {
-
-  cursor: not-allowed;
-
-  background: #9ca3af;
-}
 
 
 /************************************************************
- * STATUS / FILTER
+ * RESULT STATUS
  ************************************************************/
 
-.status-row {
-
-  margin-top: 8px;
+.status-line {
 
   display: flex;
 
-  align-items: center;
-
   gap: 6px;
+
+  align-items: center;
 
   flex-wrap: wrap;
 
-  font-size: 11px;
+  margin-top: 7px;
+
 }
 
 
-.count-badge {
+.count-chip {
 
   padding:
     4px 7px;
 
-  border-radius: 999px;
+  border-radius:
+    999px;
 
-  background: #e5e7eb;
+  background:
+    #e5e7eb;
 
-  color: #111827;
+  font-size:
+    10px;
 
-  font-weight: 800;
+  font-weight:
+    800;
+
 }
 
 
 .filter-chip {
 
-  display: none;
+  display:
+    none;
+
+  border:
+    none;
 
   padding:
-    4px 7px;
+    4px 8px;
 
-  border-radius: 999px;
+  border-radius:
+    999px;
 
-  border: 0;
+  background:
+    #dbeafe;
 
-  background: #dbeafe;
+  color:
+    #1d4ed8;
 
-  color: #1d4ed8;
+  font-size:
+    10px;
 
-  font-size: 11px;
-  font-weight: 800;
+  font-weight:
+    800;
 
-  cursor: pointer;
+  cursor:
+    pointer;
+
 }
 
 
 .filter-chip.visible {
-  display: inline-block;
+  display:
+    inline-block;
 }
+
 
 
 /************************************************************
- * LIST
+ * FLIGHT LIST
  ************************************************************/
 
-.flight-list {
+#flightList {
 
-  flex: 1;
+  flex:
+    1 1 auto;
 
   min-height: 0;
 
-  overflow-y: auto;
+  overflow-y:
+    auto;
 
-  padding: 5px;
+  padding:
+    5px;
+
 }
 
 
-.flight-empty {
+.empty {
 
-  padding: 18px;
+  padding:
+    20px 10px;
 
-  text-align: center;
+  text-align:
+    center;
 
-  color: #6b7280;
+  color:
+    #6b7280;
 
-  font-size: 12px;
+  font-size:
+    12px;
+
 }
 
 
 .flight-item {
 
-  padding: 9px 10px;
+  padding:
+    9px 10px;
 
-  border-radius: 9px;
+  border-radius:
+    9px;
+
+  cursor:
+    pointer;
 
   border-bottom:
     1px solid #edf0f4;
 
-  cursor: pointer;
-
-  transition:
-    background 0.12s ease,
-    box-shadow 0.12s ease;
 }
 
 
 .flight-item:hover {
 
-  background: #f3f6fa;
+  background:
+    #f3f4f6;
+
 }
 
 
 .flight-item.active {
 
-  background: #e8f1ff;
+  background:
+    #e8f1ff;
 
   box-shadow:
-    inset 3px 0 0 #2563eb;
+    inset 3px 0
+    #2563eb;
+
 }
 
 
-.flight-top {
+.flight-row1 {
 
-  display: flex;
-
-  justify-content:
-    space-between;
+  display:
+    flex;
 
   align-items:
     center;
 
-  gap: 8px;
+  justify-content:
+    space-between;
+
+  gap:
+    8px;
+
 }
 
 
 .flight-number {
 
-  color: #111827;
+  color:
+    #111827;
 
-  font-size: 13px;
-  font-weight: 900;
+  font-size:
+    13px;
+
+  font-weight:
+    900;
+
 }
 
 
-.flight-type {
+.aircraft-type {
 
   padding:
-    2px 5px;
+    2px 6px;
 
-  border-radius: 5px;
+  border-radius:
+    5px;
 
-  background: #edf0f4;
+  background:
+    #e5e7eb;
 
-  color: #374151;
+  font-size:
+    10px;
 
-  font-size: 10px;
-  font-weight: 800;
+  font-weight:
+    800;
+
 }
 
 
 .flight-leg {
 
-  margin-top: 3px;
+  margin-top:
+    3px;
 
-  color: #1f2937;
+  color:
+    #1f2937;
 
-  font-size: 12px;
-  font-weight: 700;
+  font-size:
+    12px;
+
+  font-weight:
+    700;
+
 }
 
 
-.flight-sub {
+.flight-info {
 
-  margin-top: 3px;
+  margin-top:
+    3px;
 
-  color: #6b7280;
+  color:
+    #6b7280;
 
-  font-size: 10px;
+  font-size:
+    10px;
+
 }
+
 
 
 /************************************************************
@@ -433,383 +524,518 @@ body {
 
 .detail-panel {
 
-  position: fixed;
+  position:
+    fixed;
 
-  top: 12px;
-  right: 12px;
+  top:
+    12px;
 
-  width: 390px;
+  right:
+    12px;
+
+  z-index:
+    1200;
+
+  width:
+    410px;
 
   max-height:
     calc(100vh - 24px);
 
-  z-index: 1150;
+  display:
+    none;
 
-  display: none;
-
-  flex-direction: column;
-
-  overflow: hidden;
+  flex-direction:
+    column;
 
   background:
-    rgba(255,255,255,0.98);
+    rgba(255,255,255,.98);
 
-  border-radius: 14px;
+  border-radius:
+    14px;
 
   box-shadow:
-    0 4px 18px
-    rgba(0,0,0,0.25);
+    0 3px 18px
+    rgba(0,0,0,.28);
+
+  overflow:
+    hidden;
+
 }
 
 
 .detail-panel.open {
-  display: flex;
+
+  display:
+    flex;
+
 }
 
 
 .detail-header {
 
-  display: flex;
+  flex:
+    0 0 auto;
 
-  align-items: flex-start;
+  display:
+    flex;
 
   justify-content:
     space-between;
 
-  gap: 8px;
+  align-items:
+    flex-start;
 
-  padding: 12px;
+  padding:
+    12px;
 
   border-bottom:
     1px solid #e5e7eb;
+
 }
 
 
 .detail-flight {
 
-  font-size: 16px;
-  font-weight: 900;
+  color:
+    #111827;
+
+  font-size:
+    16px;
+
+  font-weight:
+    900;
+
 }
 
 
 .detail-leg {
 
-  margin-top: 3px;
+  margin-top:
+    3px;
 
-  font-size: 12px;
+  color:
+    #4b5563;
 
-  color: #4b5563;
+  font-size:
+    12px;
 
-  font-weight: 700;
+  font-weight:
+    700;
+
 }
 
 
 .close-button {
 
-  border: 0;
+  width:
+    30px;
 
-  width: 30px;
-  height: 30px;
+  height:
+    30px;
 
-  border-radius: 7px;
+  border:
+    none;
 
-  background: #e5e7eb;
+  border-radius:
+    7px;
 
-  color: #111827;
+  background:
+    #e5e7eb;
 
-  cursor: pointer;
+  cursor:
+    pointer;
 
-  font-weight: 900;
+  font-weight:
+    900;
+
 }
 
 
-.detail-scroll {
+.detail-body {
 
-  overflow-y: auto;
-
-  padding: 12px;
-}
-
-
-.detail-section {
-
-  margin-bottom: 14px;
-}
-
-
-.detail-section-title {
-
-  display: inline-block;
-
-  margin-bottom: 6px;
+  overflow-y:
+    auto;
 
   padding:
-    3px 6px;
+    12px;
 
-  border-radius: 5px;
+}
 
-  background: #dbeafe;
 
-  color: #1e3a8a;
+.section {
 
-  font-size: 11px;
-  font-weight: 900;
+  margin-bottom:
+    14px;
+
+}
+
+
+.section-title {
+
+  display:
+    inline-block;
+
+  margin-bottom:
+    6px;
+
+  padding:
+    3px 7px;
+
+  border-radius:
+    5px;
+
+  background:
+    #dbeafe;
+
+  color:
+    #1e3a8a;
+
+  font-size:
+    11px;
+
+  font-weight:
+    900;
+
 }
 
 
 .route-box {
 
-  padding: 9px;
+  padding:
+    9px;
 
   border:
     1px solid #dbe2ea;
 
-  border-radius: 8px;
+  border-radius:
+    8px;
 
-  background: #f8fafc;
+  background:
+    #f8fafc;
 
-  color: #111827;
+  line-height:
+    1.5;
 
-  line-height: 1.55;
+  font-size:
+    12px;
 
-  font-size: 12px;
+  word-break:
+    break-word;
 
-  word-break: break-word;
 }
 
 
 .original-box {
 
-  padding: 9px;
+  max-height:
+    430px;
 
-  max-height: 430px;
+  overflow-y:
+    auto;
 
-  overflow-y: auto;
+  padding:
+    10px;
 
-  border:
-    1px solid #dbe2ea;
+  border-radius:
+    8px;
 
-  border-radius: 8px;
+  background:
+    #111827;
 
-  background: #111827;
-
-  color: #e5e7eb;
+  color:
+    #e5e7eb;
 
   font-family:
     Consolas,
-    "Courier New",
     monospace;
 
-  font-size: 10.5px;
+  font-size:
+    10px;
 
-  line-height: 1.45;
+  line-height:
+    1.45;
 
-  white-space: pre-wrap;
+  white-space:
+    pre-wrap;
 
-  word-break: break-word;
+  word-break:
+    break-word;
+
 }
 
-
-.loading-box {
-
-  color: #6b7280;
-
-  font-size: 12px;
-}
 
 
 /************************************************************
- * MAP AIRPORT ICONS
+ * RESULT AIRPORT ICON
  ************************************************************/
 
-.airport-icon-wrapper {
+.airport-wrapper {
 
-  position: relative;
+  position:
+    relative;
 
-  width: 30px;
-  height: 30px;
+  width:
+    36px;
+
+  height:
+    36px;
+
 }
 
 
-.airport-icon {
+.airport-circle {
 
-  width: 28px;
-  height: 28px;
+  width:
+    30px;
 
-  display: flex;
+  height:
+    30px;
 
-  justify-content: center;
-  align-items: center;
+  display:
+    flex;
 
-  border-radius: 50%;
+  justify-content:
+    center;
+
+  align-items:
+    center;
+
+  border-radius:
+    50%;
 
   border:
     2px solid white;
 
+  background:
+    #2563eb;
+
+  color:
+    white;
+
   box-shadow:
-    0 2px 7px
-    rgba(0,0,0,0.40);
+    0 2px 8px
+    rgba(0,0,0,.40);
 
-  background: #334155;
+  font-size:
+    15px;
 
-  color: white;
+  font-weight:
+    900;
 
-  font-size: 15px;
-  font-weight: 900;
 }
 
 
-.airport-icon.query {
+.airport-circle.query {
 
-  width: 34px;
-  height: 34px;
+  width:
+    34px;
 
-  background: #dc2626;
+  height:
+    34px;
 
-  font-size: 17px;
+  background:
+    #dc2626;
+
 }
 
 
-.airport-icon.related {
+.airport-circle.selected {
 
-  background: #2563eb;
+  width:
+    34px;
+
+  height:
+    34px;
+
+  background:
+    #16a34a;
+
 }
 
 
-.airport-icon.selected {
+.airport-circle.search {
 
-  background: #16a34a;
+  background:
+    #7c3aed;
 
-  width: 34px;
-  height: 34px;
 }
 
 
-.airport-badge {
+.airport-count {
 
-  position: absolute;
+  position:
+    absolute;
 
-  top: -8px;
-  right: -10px;
+  top:
+    -7px;
 
-  min-width: 19px;
-  height: 19px;
+  right:
+    -8px;
+
+  min-width:
+    19px;
+
+  height:
+    19px;
 
   padding:
     0 4px;
 
-  display: flex;
+  display:
+    flex;
 
-  align-items: center;
-  justify-content: center;
+  align-items:
+    center;
 
-  border-radius: 999px;
-
-  background: #111827;
-
-  color: white;
+  justify-content:
+    center;
 
   border:
     2px solid white;
 
-  font-size: 9px;
-  font-weight: 900;
+  border-radius:
+    999px;
+
+  background:
+    #111827;
+
+  color:
+    white;
+
+  font-size:
+    9px;
+
+  font-weight:
+    900;
+
 }
 
 
-.airport-label {
+.airport-tooltip {
 
-  background: transparent !important;
+  background:
+    transparent !important;
 
-  border: 0 !important;
+  border:
+    none !important;
 
-  box-shadow: none !important;
+  box-shadow:
+    none !important;
 
-  color: #111827;
+  color:
+    #111827;
 
-  font-size: 10px;
+  font-size:
+    10px;
 
-  font-weight: 900;
+  font-weight:
+    900;
 
   text-shadow:
     -1px -1px 0 white,
      1px -1px 0 white,
     -1px  1px 0 white,
      1px  1px 0 white;
+
 }
+
 
 
 /************************************************************
- * RIGHT BOTTOM AIRPORT SEARCH
+ * RIGHT-BOTTOM AIRPORT SEARCH
  ************************************************************/
 
-.map-search {
+.airport-search-control {
 
-  position: fixed;
+  position:
+    fixed;
 
-  right: 14px;
-  bottom: 24px;
+  right:
+    14px;
 
-  z-index: 1200;
+  bottom:
+    24px;
 
-  display: flex;
+  z-index:
+    1300;
 
-  flex-direction: column;
+  width:
+    86px;
 
-  gap: 5px;
-
-  padding: 7px;
-
-  border-radius: 10px;
+  padding:
+    6px;
 
   background:
-    rgba(255,255,255,0.95);
+    rgba(255,255,255,.96);
+
+  border-radius:
+    10px;
 
   box-shadow:
     0 2px 10px
-    rgba(0,0,0,0.25);
+    rgba(0,0,0,.25);
+
 }
 
 
-.map-search input {
+.airport-search-control input {
 
-  width: 82px;
+  width:
+    100%;
 
-  padding: 7px;
+  margin-bottom:
+    5px;
+
+  padding:
+    7px 4px;
+
+  text-align:
+    center;
+
+  text-transform:
+    uppercase;
+
+  font-size:
+    14px;
+
+  font-weight:
+    900;
+
+}
+
+
+.airport-search-control button {
+
+  width:
+    100%;
 
   border:
-    1px solid #cbd5e1;
+    none;
 
-  border-radius: 7px;
+  padding:
+    7px 2px;
 
-  text-align: center;
+  border-radius:
+    7px;
 
-  text-transform: uppercase;
+  background:
+    #111827;
 
-  font-size: 14px;
-  font-weight: 900;
+  color:
+    white;
+
+  font-size:
+    10px;
+
+  font-weight:
+    800;
+
+  cursor:
+    pointer;
+
 }
 
-
-.map-search button {
-
-  width: 82px;
-
-  padding: 7px;
-
-  border: 0;
-
-  border-radius: 7px;
-
-  background: #111827;
-
-  color: white;
-
-  font-size: 11px;
-  font-weight: 800;
-
-  cursor: pointer;
-}
 
 
 /************************************************************
@@ -821,34 +1047,52 @@ body {
 
   .left-panel {
 
-    top: 8px;
-    left: 8px;
+    top:
+      8px;
+
+    left:
+      8px;
 
     width:
       calc(100vw - 16px);
 
-    max-height: 46vh;
+    max-height:
+      44vh;
+
   }
 
 
   .detail-panel {
 
-    top: auto;
-    bottom: 8px;
+    top:
+      auto;
 
-    left: 8px;
-    right: 8px;
+    left:
+      8px;
 
-    width: auto;
+    right:
+      8px;
 
-    max-height: 52vh;
+    bottom:
+      8px;
+
+    width:
+      auto;
+
+    max-height:
+      50vh;
+
   }
 
 
-  .map-search {
+  .airport-search-control {
 
-    right: 8px;
-    bottom: 8px;
+    right:
+      8px;
+
+    bottom:
+      8px;
+
   }
 
 }
@@ -861,8 +1105,6 @@ body {
 <body>
 
 
-<!-- MAP -->
-
 <div id="map"></div>
 
 
@@ -871,42 +1113,40 @@ body {
 
 <div class="left-panel">
 
-  <div class="panel-header">
+  <div class="left-header">
 
     <div class="title">
       UBIKAIS ATS Flight Plan
     </div>
 
 
-    <div class="control-row">
+    <div class="row">
 
-      <label>
+      <div class="label">
         Date
-      </label>
+      </div>
 
       <input
         id="dateInput"
         type="date"
-      />
+      >
 
     </div>
 
 
-    <div class="direction-buttons">
+    <div class="mode-buttons">
 
       <button
-        id="arrButton"
-        class="direction-button"
-        type="button"
+        id="arrBtn"
+        class="mode-button"
       >
         ARRIVAL
       </button>
 
+
       <button
-        id="depButton"
-        class=
-        "direction-button active"
-        type="button"
+        id="depBtn"
+        class="mode-button active"
       >
         DEPARTURE
       </button>
@@ -914,13 +1154,14 @@ body {
     </div>
 
 
-    <div class="control-row">
+    <div class="row">
 
-      <label>
-        Airport ICAO
-      </label>
+      <div class="label">
+        Airport
+      </div>
 
-      <div class="main-search-row">
+
+      <div class="query-row">
 
         <input
           id="airportInput"
@@ -928,14 +1169,14 @@ body {
           maxlength="4"
           value="RKSI"
           placeholder="RKSI"
-        />
+        >
+
 
         <button
-          id="searchButton"
-          class="main-search-button"
-          type="button"
+          id="queryBtn"
+          class="search-button"
         >
-          조회
+          SEARCH
         </button>
 
       </div>
@@ -943,35 +1184,30 @@ body {
     </div>
 
 
-    <div class="status-row">
+    <div class="status-line">
 
       <span
-        id="countBadge"
-        class="count-badge"
+        id="countChip"
+        class="count-chip"
       >
         0 Flights
       </span>
 
+
       <button
         id="filterChip"
         class="filter-chip"
-        type="button"
-        title="필터 해제"
-      >
-      </button>
+      ></button>
 
     </div>
 
   </div>
 
 
-  <div
-    id="flightList"
-    class="flight-list"
-  >
+  <div id="flightList">
 
-    <div class="flight-empty">
-      날짜와 공항을 선택 후 조회하세요.
+    <div class="empty">
+      날짜와 공항을 선택한 후 SEARCH를 누르세요.
     </div>
 
   </div>
@@ -980,7 +1216,7 @@ body {
 
 
 
-<!-- DETAIL PANEL -->
+<!-- DETAIL -->
 
 <div
   id="detailPanel"
@@ -1009,9 +1245,8 @@ body {
 
 
     <button
-      id="detailClose"
+      id="closeDetail"
       class="close-button"
-      type="button"
     >
       ×
     </button>
@@ -1019,13 +1254,11 @@ body {
   </div>
 
 
-  <div class="detail-scroll">
+  <div class="detail-body">
 
-    <div class="detail-section">
+    <div class="section">
 
-      <div
-        class="detail-section-title"
-      >
+      <div class="section-title">
         ROUTE
       </div>
 
@@ -1039,11 +1272,9 @@ body {
     </div>
 
 
-    <div class="detail-section">
+    <div class="section">
 
-      <div
-        class="detail-section-title"
-      >
+      <div class="section-title">
         ATS ORIGINAL MESSAGE
       </div>
 
@@ -1062,21 +1293,19 @@ body {
 
 
 
-<!-- MAP SEARCH -->
+<!-- RIGHT BOTTOM AIRPORT SEARCH -->
 
-<div class="map-search">
+<div class="airport-search-control">
 
   <input
     id="mapAirportInput"
     type="text"
     maxlength="4"
     placeholder="ICAO"
-  />
-
-  <button
-    id="mapAirportButton"
-    type="button"
   >
+
+
+  <button id="mapAirportBtn">
     AIRPORT
   </button>
 
@@ -1091,20 +1320,16 @@ body {
  ************************************************************/
 
 /*
- * Apps Script deployment URL로 교체.
- *
- * 반드시 /exec URL.
+ * 여기를 네 Apps Script /exec 주소로 바꿔
  */
 const APPS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycby8SXVmuTrmYnMTyloD9Gk5q1VY8xgjIxwgBevDFQF1svEV2ErSxo8nFZdpP4I8tAFLpQ/exec";
 
 
 /*
- * OurAirports public dataset.
- *
- * 처음 한 번 내려받아 ICAO → lat/lon index 생성.
+ * ICAO airport database
  */
-const AIRPORTS_CSV_URL =
+const AIRPORT_CSV =
   "https://davidmegginson.github.io/ourairports-data/airports.csv";
 
 
@@ -1112,29 +1337,28 @@ const AIRPORTS_CSV_URL =
  * STATE
  ************************************************************/
 
-let direction = "dep";
-
-let allFlights = [];
-
-let displayedFlights = [];
-
-let selectedAirportFilter = "";
-
-let selectedFlight = null;
-
-let airportIndex = {};
-
-let airportDataLoaded = false;
+let currentDirection =
+  "dep";
 
 
-let resultAirportLayer =
-  L.featureGroup();
+let allFlights =
+  [];
 
-let selectedLegLayer =
-  L.featureGroup();
 
-let mapSearchLayer =
-  L.featureGroup();
+let visibleFlights =
+  [];
+
+
+let selectedFlight =
+  null;
+
+
+let airportFilter =
+  "";
+
+
+let airportDb =
+  {};
 
 
 /************************************************************
@@ -1145,13 +1369,18 @@ const map =
   L.map(
     "map",
     {
-      zoomControl: false,
-      worldCopyJump: true,
-      preferCanvas: true
+      zoomControl:
+        false,
+
+      preferCanvas:
+        true,
+
+      worldCopyJump:
+        true
     }
   )
   .setView(
-    [35.5, 128],
+    [36.2, 127.8],
     5
   );
 
@@ -1159,10 +1388,13 @@ const map =
 L.tileLayer(
   "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
   {
-    maxZoom: 16,
+
+    maxZoom:
+      15,
 
     attribution:
       "&copy; OpenStreetMap &copy; CARTO"
+
   }
 )
 .addTo(map);
@@ -1170,26 +1402,38 @@ L.tileLayer(
 
 L.control
   .zoom({
-    position: "bottomleft"
+    position:
+      "bottomleft"
   })
   .addTo(map);
 
 
-resultAirportLayer.addTo(map);
-selectedLegLayer.addTo(map);
-mapSearchLayer.addTo(map);
+
+const resultLayer =
+  L.featureGroup()
+    .addTo(map);
+
+
+const selectedLegLayer =
+  L.featureGroup()
+    .addTo(map);
+
+
+const searchLayer =
+  L.featureGroup()
+    .addTo(map);
 
 
 
 /************************************************************
- * INITIALIZE
+ * START
  ************************************************************/
 
 document.addEventListener(
   "DOMContentLoaded",
   async function() {
 
-    initializeDate();
+    setToday();
 
     bindEvents();
 
@@ -1200,34 +1444,33 @@ document.addEventListener(
 
 
 /************************************************************
- * DATE
+ * TODAY
  ************************************************************/
 
-function initializeDate() {
+function setToday() {
 
-  /*
-   * Local date 사용.
-   */
-  const now =
+  const d =
     new Date();
 
-  const year =
-    now.getFullYear();
 
-  const month =
+  const date =
+    d.getFullYear() +
+    "-" +
     String(
-      now.getMonth() + 1
+      d.getMonth() + 1
+    ).padStart(2, "0") +
+    "-" +
+    String(
+      d.getDate()
     ).padStart(2, "0");
 
-  const day =
-    String(
-      now.getDate()
-    ).padStart(2, "0");
 
   document
-    .getElementById("dateInput")
+    .getElementById(
+      "dateInput"
+    )
     .value =
-      `${year}-${month}-${day}`;
+      date;
 
 }
 
@@ -1239,35 +1482,37 @@ function initializeDate() {
 function bindEvents() {
 
   document
-    .getElementById("arrButton")
-    .addEventListener(
-      "click",
+    .getElementById(
+      "arrBtn"
+    )
+    .onclick =
       function() {
-        setDirection("arr");
-      }
-    );
+        setMode("arr");
+      };
 
 
   document
-    .getElementById("depButton")
-    .addEventListener(
-      "click",
+    .getElementById(
+      "depBtn"
+    )
+    .onclick =
       function() {
-        setDirection("dep");
-      }
-    );
+        setMode("dep");
+      };
 
 
   document
-    .getElementById("searchButton")
-    .addEventListener(
-      "click",
-      searchFlights
-    );
+    .getElementById(
+      "queryBtn"
+    )
+    .onclick =
+      searchFlights;
 
 
   document
-    .getElementById("airportInput")
+    .getElementById(
+      "airportInput"
+    )
     .addEventListener(
       "keydown",
       function(e) {
@@ -1281,100 +1526,106 @@ function bindEvents() {
 
 
   document
-    .getElementById("filterChip")
-    .addEventListener(
-      "click",
-      clearAirportFilter
-    );
+    .getElementById(
+      "mapAirportBtn"
+    )
+    .onclick =
+      searchAirport;
 
 
   document
-    .getElementById("detailClose")
-    .addEventListener(
-      "click",
-      closeDetailPanel
-    );
-
-
-  document
-    .getElementById("mapAirportButton")
-    .addEventListener(
-      "click",
-      searchAirportOnMap
-    );
-
-
-  document
-    .getElementById("mapAirportInput")
+    .getElementById(
+      "mapAirportInput"
+    )
     .addEventListener(
       "keydown",
       function(e) {
 
         if (e.key === "Enter") {
-          searchAirportOnMap();
+          searchAirport();
         }
 
       }
     );
 
 
-  /*
-   * ICAO uppercase
-   */
+  document
+    .getElementById(
+      "filterChip"
+    )
+    .onclick =
+      clearAirportFilter;
+
+
+  document
+    .getElementById(
+      "closeDetail"
+    )
+    .onclick =
+      closeDetail;
+
+
   [
     "airportInput",
     "mapAirportInput"
-  ].forEach(function(id) {
+  ]
+  .forEach(
+    function(id) {
 
-    document
-      .getElementById(id)
-      .addEventListener(
-        "input",
-        function() {
+      document
+        .getElementById(id)
+        .addEventListener(
+          "input",
+          function() {
 
-          this.value =
-            this.value
-              .toUpperCase()
-              .replace(
-                /[^A-Z0-9]/g,
-                ""
-              );
+            this.value =
+              this.value
+                .toUpperCase()
+                .replace(
+                  /[^A-Z0-9]/g,
+                  ""
+                );
 
-        }
-      );
+          }
+        );
 
-  });
+    }
+  );
 
 }
 
 
 /************************************************************
- * DIRECTION
+ * ARR / DEP
  ************************************************************/
 
-function setDirection(value) {
+function setMode(
+  mode
+) {
 
-  direction =
-    value === "arr"
+  currentDirection =
+    mode === "arr"
       ? "arr"
       : "dep";
 
 
   document
-    .getElementById("arrButton")
-    .classList
-    .toggle(
+    .getElementById(
+      "arrBtn"
+    )
+    .classList.toggle(
       "active",
-      direction === "arr"
+      currentDirection === "arr"
     );
 
 
   document
-    .getElementById("depButton")
-    .classList
-    .toggle(
+    .getElementById(
+      "depBtn"
+    )
+    .classList.toggle(
       "active",
-      direction === "dep"
+      currentDirection === "dep"
     );
 
 }
@@ -1390,39 +1641,33 @@ async function loadAirportDatabase() {
 
     const response =
       await fetch(
-        AIRPORTS_CSV_URL
+        AIRPORT_CSV
       );
 
-    if (!response.ok) {
-      throw new Error(
-        "Airport database HTTP " +
-        response.status
-      );
-    }
 
     const csv =
       await response.text();
 
-    airportIndex =
-      parseAirportCsv(csv);
 
-    airportDataLoaded = true;
+    airportDb =
+      parseAirportCsv(
+        csv
+      );
+
 
     console.log(
-      "Airport DB loaded:",
+      "Airport DB:",
       Object.keys(
-        airportIndex
+        airportDb
       ).length
     );
 
   } catch (err) {
 
     console.error(
-      "Airport database load failed",
+      "Airport DB error:",
       err
     );
-
-    airportDataLoaded = false;
 
   }
 
@@ -1430,50 +1675,55 @@ async function loadAirportDatabase() {
 
 
 /************************************************************
- * CSV PARSER
+ * CSV
  ************************************************************/
 
-function parseAirportCsv(csv) {
+function parseAirportCsv(
+  csv
+) {
 
   const lines =
     csv.split(/\r?\n/);
 
-  if (!lines.length) {
-    return {};
-  }
 
   const headers =
     parseCsvLine(
       lines[0]
     );
 
-  const idxIdent =
-    headers.indexOf("ident");
 
-  const idxLat =
+  const identIndex =
     headers.indexOf(
-      "latitude_deg"
+      "ident"
     );
 
-  const idxLon =
-    headers.indexOf(
-      "longitude_deg"
-    );
 
-  const idxName =
-    headers.indexOf("name");
-
-  const idxMunicipality =
-    headers.indexOf(
-      "municipality"
-    );
-
-  const idxIcao =
+  const icaoIndex =
     headers.indexOf(
       "icao_code"
     );
 
-  const index = {};
+
+  const latIndex =
+    headers.indexOf(
+      "latitude_deg"
+    );
+
+
+  const lonIndex =
+    headers.indexOf(
+      "longitude_deg"
+    );
+
+
+  const nameIndex =
+    headers.indexOf(
+      "name"
+    );
+
+
+  const result =
+    {};
 
 
   for (
@@ -1482,36 +1732,31 @@ function parseAirportCsv(csv) {
     i++
   ) {
 
-    const line =
-      lines[i];
-
-    if (!line) {
+    if (!lines[i]) {
       continue;
     }
 
-    const cells =
-      parseCsvLine(line);
+
+    const c =
+      parseCsvLine(
+        lines[i]
+      );
 
 
-    /*
-     * ICAO 우선,
-     * 없으면 ident.
-     */
     const code =
       String(
-        cells[idxIcao] ||
-        cells[idxIdent] ||
+        c[icaoIndex] ||
+        c[identIndex] ||
         ""
       )
       .trim()
       .toUpperCase();
 
 
-    /*
-     * ATS 앱은 ICAO 4-letter 위주.
-     */
     if (
-      !/^[A-Z0-9]{4}$/.test(code)
+      !/^[A-Z0-9]{4}$/.test(
+        code
+      )
     ) {
       continue;
     }
@@ -1519,12 +1764,13 @@ function parseAirportCsv(csv) {
 
     const lat =
       Number(
-        cells[idxLat]
+        c[latIndex]
       );
+
 
     const lon =
       Number(
-        cells[idxLon]
+        c[lonIndex]
       );
 
 
@@ -1536,43 +1782,48 @@ function parseAirportCsv(csv) {
     }
 
 
-    index[code] = {
+    result[code] = {
 
-      code: code,
+      code:
+        code,
 
-      lat: lat,
+      lat:
+        lat,
 
-      lon: lon,
+      lon:
+        lon,
 
       name:
-        cells[idxName] || code,
-
-      municipality:
-        cells[
-          idxMunicipality
-        ] || ""
+        c[nameIndex] || code
 
     };
 
   }
 
 
-  return index;
+  return result;
 
 }
 
 
 /************************************************************
- * SIMPLE CSV LINE PARSER
+ * CSV LINE
  ************************************************************/
 
-function parseCsvLine(line) {
+function parseCsvLine(
+  line
+) {
 
-  const out = [];
+  const result =
+    [];
 
-  let current = "";
 
-  let quoted = false;
+  let value =
+    "";
+
+
+  let quote =
+    false;
 
 
   for (
@@ -1581,66 +1832,73 @@ function parseCsvLine(line) {
     i++
   ) {
 
-    const c = line[i];
+    const ch =
+      line[i];
 
 
-    if (c === '"') {
+    if (ch === '"') {
 
       if (
-        quoted &&
+        quote &&
         line[i + 1] === '"'
       ) {
 
-        current += '"';
+        value += '"';
+
         i++;
 
       } else {
 
-        quoted = !quoted;
+        quote =
+          !quote;
 
       }
 
+
       continue;
+
     }
 
 
     if (
-      c === "," &&
-      !quoted
+      ch === "," &&
+      !quote
     ) {
 
-      out.push(current);
+      result.push(
+        value
+      );
 
-      current = "";
+
+      value =
+        "";
+
 
       continue;
+
     }
 
 
-    current += c;
+    value += ch;
 
   }
 
 
-  out.push(current);
+  result.push(
+    value
+  );
 
-  return out;
+
+  return result;
 
 }
 
 
 /************************************************************
- * SEARCH FLIGHTS
+ * SEARCH UBIKAIS
  ************************************************************/
 
 async function searchFlights() {
-
-  const date =
-    document
-      .getElementById(
-        "dateInput"
-      )
-      .value;
 
   const airport =
     document
@@ -1652,14 +1910,12 @@ async function searchFlights() {
       .toUpperCase();
 
 
-  if (!date) {
-
-    alert(
-      "날짜를 선택하세요."
-    );
-
-    return;
-  }
+  const date =
+    document
+      .getElementById(
+        "dateInput"
+      )
+      .value;
 
 
   if (
@@ -1669,27 +1925,41 @@ async function searchFlights() {
   ) {
 
     alert(
-      "4자리 ICAO 공항코드를 입력하세요."
+      "ICAO 4자리 공항코드를 입력하세요."
     );
 
     return;
+
+  }
+
+
+  if (!date) {
+
+    alert(
+      "날짜를 선택하세요."
+    );
+
+    return;
+
   }
 
 
   const button =
     document
       .getElementById(
-        "searchButton"
+        "queryBtn"
       );
 
 
-  button.disabled = true;
+  button.disabled =
+    true;
+
 
   button.textContent =
-    "조회중";
+    "LOADING";
 
 
-  clearCurrentResults();
+  resetResults();
 
 
   document
@@ -1697,22 +1967,26 @@ async function searchFlights() {
       "flightList"
     )
     .innerHTML =
-      '<div class="flight-empty">UBIKAIS 조회 중...</div>';
+      '<div class="empty">UBIKAIS 조회 중...</div>';
 
 
   try {
 
     const url =
       APPS_SCRIPT_URL +
+
       "?mode=flights" +
+
       "&direction=" +
       encodeURIComponent(
-        direction
+        currentDirection
       ) +
+
       "&date=" +
       encodeURIComponent(
         date
       ) +
+
       "&airport=" +
       encodeURIComponent(
         airport
@@ -1720,7 +1994,9 @@ async function searchFlights() {
 
 
     const response =
-      await fetch(url);
+      await fetch(
+        url
+      );
 
 
     const data =
@@ -1734,7 +2010,7 @@ async function searchFlights() {
 
       throw new Error(
         data.msg ||
-        "UBIKAIS 조회 실패"
+        "조회 실패"
       );
 
     }
@@ -1744,42 +2020,47 @@ async function searchFlights() {
       Array.isArray(
         data.records
       )
-        ? data.records
-        : [];
+      ? data.records
+      : [];
 
 
-    displayedFlights =
+    visibleFlights =
       allFlights.slice();
 
 
     renderFlightList();
 
-    renderResultAirports();
+    renderAirportMarkers();
 
-    fitAllResultAirports();
+    fitResultAirports();
 
 
   } catch (err) {
-
-    console.error(err);
 
     document
       .getElementById(
         "flightList"
       )
       .innerHTML =
-        '<div class="flight-empty">' +
+        '<div class="empty">' +
         escapeHtml(
           err.message
         ) +
         '</div>';
 
+
+    console.error(
+      err
+    );
+
   } finally {
 
-    button.disabled = false;
+    button.disabled =
+      false;
+
 
     button.textContent =
-      "조회";
+      "SEARCH";
 
   }
 
@@ -1787,28 +2068,36 @@ async function searchFlights() {
 
 
 /************************************************************
- * CLEAR RESULTS
+ * RESET
  ************************************************************/
 
-function clearCurrentResults() {
+function resetResults() {
 
-  allFlights = [];
-
-  displayedFlights = [];
-
-  selectedAirportFilter = "";
-
-  selectedFlight = null;
+  allFlights =
+    [];
 
 
-  resultAirportLayer
+  visibleFlights =
+    [];
+
+
+  selectedFlight =
+    null;
+
+
+  airportFilter =
+    "";
+
+
+  resultLayer
     .clearLayers();
+
 
   selectedLegLayer
     .clearLayers();
 
 
-  closeDetailPanel();
+  closeDetail();
 
   updateFilterChip();
 
@@ -1816,27 +2105,28 @@ function clearCurrentResults() {
 
 
 /************************************************************
- * RENDER FLIGHT LIST
+ * RENDER LIST
  ************************************************************/
 
 function renderFlightList() {
 
-  const list =
+  const box =
     document
       .getElementById(
         "flightList"
       );
 
 
-  list.innerHTML = "";
+  box.innerHTML =
+    "";
 
 
   document
     .getElementById(
-      "countBadge"
+      "countChip"
     )
     .textContent =
-      displayedFlights.length +
+      visibleFlights.length +
       " Flights";
 
 
@@ -1844,19 +2134,20 @@ function renderFlightList() {
 
 
   if (
-    !displayedFlights.length
+    !visibleFlights.length
   ) {
 
-    list.innerHTML =
-      '<div class="flight-empty">조회 결과가 없습니다.</div>';
+    box.innerHTML =
+      '<div class="empty">조회 결과가 없습니다.</div>';
 
     return;
+
   }
 
 
-  displayedFlights
+  visibleFlights
     .forEach(
-      function(flight) {
+      function(f) {
 
         const item =
           document
@@ -1871,55 +2162,82 @@ function renderFlightList() {
 
         if (
           selectedFlight &&
-          selectedFlight.amsRecPk ===
-          flight.amsRecPk
+          String(
+            selectedFlight.amsRecPk
+          ) ===
+          String(
+            f.amsRecPk
+          )
         ) {
 
           item.classList
-            .add("active");
+            .add(
+              "active"
+            );
 
         }
 
 
         item.innerHTML =
           `
-          <div class="flight-top">
+
+          <div class="flight-row1">
 
             <div class="flight-number">
-              ${escapeHtml(flight.flight || "-")}
+              ${escapeHtml(f.flight || "-")}
             </div>
 
-            <div class="flight-type">
-              ${escapeHtml(flight.acType || "-")}
+            <div class="aircraft-type">
+              ${escapeHtml(f.acType || "-")}
             </div>
 
           </div>
+
 
           <div class="flight-leg">
-            ${escapeHtml(flight.dep || "?")}
+
+            ${escapeHtml(f.dep || "?")}
+
             →
-            ${escapeHtml(flight.arr || "?")}
+
+            ${escapeHtml(f.arr || "?")}
+
           </div>
 
-          <div class="flight-sub">
-            REG ${escapeHtml(flight.registration || "-")}
+
+          <div class="flight-info">
+
+            REG ${escapeHtml(f.registration || "-")}
+
+            ${
+              f.schTime
+                ?
+                " · SCH " +
+                escapeHtml(
+                  formatTime(
+                    f.schTime
+                  )
+                )
+                :
+                ""
+            }
+
           </div>
+
           `;
 
 
-        item.addEventListener(
-          "click",
+        item.onclick =
           function() {
 
             selectFlight(
-              flight
+              f
             );
 
-          }
-        );
+          };
 
 
-        list.appendChild(
+        box.appendChild(
           item
         );
 
@@ -1930,68 +2248,67 @@ function renderFlightList() {
 
 
 /************************************************************
- * AIRPORT COUNTS
+ * AIRPORT → FLIGHTS
  ************************************************************/
 
-function buildAirportFlightMap() {
+function makeAirportFlightMap() {
 
-  const mapObj = {};
+  const result =
+    {};
 
 
-  allFlights.forEach(
-    function(f) {
+  allFlights
+    .forEach(
+      function(f) {
 
-      [
-        f.dep,
-        f.arr
-      ]
-      .filter(Boolean)
-      .forEach(
-        function(code) {
+        [
+          f.dep,
+          f.arr
+        ]
+        .filter(Boolean)
+        .forEach(
+          function(code) {
 
-          code =
-            String(code)
-              .toUpperCase();
+            code =
+              String(code)
+                .toUpperCase();
 
-          if (
-            !mapObj[code]
-          ) {
 
-            mapObj[code] = [];
+            if (
+              !result[code]
+            ) {
+
+              result[code] =
+                [];
+
+            }
+
+
+            result[code]
+              .push(
+                f
+              );
 
           }
+        );
 
-          mapObj[code]
-            .push(f);
-
-        }
-      );
-
-    }
-  );
+      }
+    );
 
 
-  return mapObj;
+  return result;
 
 }
 
 
 /************************************************************
- * MAP RESULT AIRPORTS
+ * RENDER RESULT AIRPORTS
  ************************************************************/
 
-function renderResultAirports() {
+function renderAirportMarkers() {
 
-  resultAirportLayer
+  resultLayer
     .clearLayers();
-
-
-  if (
-    !airportDataLoaded
-  ) {
-
-    return;
-  }
 
 
   const queryAirport =
@@ -2004,68 +2321,76 @@ function renderResultAirports() {
       .toUpperCase();
 
 
-  const airportMap =
-    buildAirportFlightMap();
+  const airportFlightMap =
+    makeAirportFlightMap();
 
 
   Object.keys(
-    airportMap
+    airportFlightMap
   )
   .forEach(
     function(code) {
 
-      const airport =
-        airportIndex[code];
+      const a =
+        airportDb[code];
 
-      if (!airport) {
+
+      if (!a) {
+
+        console.warn(
+          "Airport coordinate missing:",
+          code
+        );
+
         return;
+
       }
 
 
       const flights =
-        airportMap[code];
+        airportFlightMap[
+          code
+        ];
 
 
-      let iconClass =
-        "related";
+      let style =
+        "normal";
 
 
       if (
         code === queryAirport
       ) {
 
-        iconClass =
+        style =
           "query";
 
       }
 
 
       if (
-        code ===
-        selectedAirportFilter
+        code === airportFilter
       ) {
 
-        iconClass =
+        style =
           "selected";
 
       }
 
 
-      const icon =
-        createAirportIcon(
-          iconClass,
-          flights.length
-        );
-
-
       const marker =
         L.marker(
           [
-            airport.lat,
-            airport.lon
+            a.lat,
+            a.lon
           ],
           {
-            icon: icon
+
+            icon:
+              createAirportIcon(
+                style,
+                flights.length
+              )
+
           }
         );
 
@@ -2073,29 +2398,54 @@ function renderResultAirports() {
       marker.bindTooltip(
         code,
         {
-          permanent: true,
-          direction: "bottom",
-          offset: [0, 12],
+
+          permanent:
+            true,
+
+          direction:
+            "bottom",
+
+          offset:
+            [0, 12],
+
           className:
-            "airport-label"
+            "airport-tooltip"
+
         }
       );
 
 
       marker.bindPopup(
-        `
-        <b>${escapeHtml(code)}</b><br>
-        ${escapeHtml(airport.name)}<br>
-        ${flights.length} matching flight(s)
-        `
+
+        "<b>" +
+        escapeHtml(code) +
+        "</b><br>" +
+
+        escapeHtml(
+          a.name
+        ) +
+
+        "<br>" +
+
+        flights.length +
+        " Flight(s)"
+
       );
 
+
+      /******************************************************
+       * 핵심:
+       *
+       * 지도 공항 클릭
+       * →
+       * 좌측 리스트 해당 공항 항공편 필터
+       ******************************************************/
 
       marker.on(
         "click",
         function() {
 
-          handleResultAirportClick(
+          filterByAirport(
             code
           );
 
@@ -2104,7 +2454,7 @@ function renderResultAirports() {
 
 
       marker.addTo(
-        resultAirportLayer
+        resultLayer
       );
 
     }
@@ -2114,44 +2464,84 @@ function renderResultAirports() {
 
 
 /************************************************************
- * CREATE AIRPORT ICON
+ * AIRPORT ICON
  ************************************************************/
 
 function createAirportIcon(
-  cssClass,
+  style,
   count
 ) {
 
+  let cssClass =
+    "";
+
+
+  if (style === "query") {
+
+    cssClass =
+      "query";
+
+  }
+
+
+  else if (
+    style === "selected"
+  ) {
+
+    cssClass =
+      "selected";
+
+  }
+
+
+  else if (
+    style === "search"
+  ) {
+
+    cssClass =
+      "search";
+
+  }
+
+
   return L.divIcon({
 
-    className: "",
+    className:
+      "",
+
 
     html:
       `
-      <div class="airport-icon-wrapper">
 
-        <div class="airport-icon ${cssClass}">
+      <div class="airport-wrapper">
+
+        <div class="airport-circle ${cssClass}">
           ✈
         </div>
 
         ${
           count
-            ? `
-              <div class="airport-badge">
-                ${count}
-              </div>
-              `
-            : ""
+          ?
+          `
+          <div class="airport-count">
+            ${count}
+          </div>
+          `
+          :
+          ""
         }
 
       </div>
+
       `,
 
+
     iconSize:
-      [36, 36],
+      [38,38],
+
 
     iconAnchor:
-      [18, 18]
+      [19,19]
 
   });
 
@@ -2159,10 +2549,10 @@ function createAirportIcon(
 
 
 /************************************************************
- * AIRPORT CLICK → LEFT LIST FILTER
+ * MAP AIRPORT CLICK FILTER
  ************************************************************/
 
-function handleResultAirportClick(
+function filterByAirport(
   code
 ) {
 
@@ -2177,9 +2567,11 @@ function handleResultAirportClick(
 
 
   /*
-   * 기준공항 클릭:
-   * 전체 리스트 복귀
+   * 조회 기준 공항 클릭
+   * →
+   * 전체 결과
    */
+
   if (
     code === queryAirport
   ) {
@@ -2187,14 +2579,15 @@ function handleResultAirportClick(
     clearAirportFilter();
 
     return;
+
   }
 
 
-  selectedAirportFilter =
+  airportFilter =
     code;
 
 
-  displayedFlights =
+  visibleFlights =
     allFlights.filter(
       function(f) {
 
@@ -2207,41 +2600,52 @@ function handleResultAirportClick(
     );
 
 
-  selectedFlight = null;
+  selectedFlight =
+    null;
+
 
   selectedLegLayer
     .clearLayers();
 
-  closeDetailPanel();
+
+  closeDetail();
+
 
   renderFlightList();
 
-  renderResultAirports();
+  renderAirportMarkers();
 
 }
 
 
 /************************************************************
- * CLEAR AIRPORT FILTER
+ * CLEAR FILTER
  ************************************************************/
 
 function clearAirportFilter() {
 
-  selectedAirportFilter = "";
+  airportFilter =
+    "";
 
-  displayedFlights =
+
+  visibleFlights =
     allFlights.slice();
 
-  selectedFlight = null;
+
+  selectedFlight =
+    null;
+
 
   selectedLegLayer
     .clearLayers();
 
-  closeDetailPanel();
+
+  closeDetail();
+
 
   renderFlightList();
 
-  renderResultAirports();
+  renderAirportMarkers();
 
 }
 
@@ -2260,22 +2664,29 @@ function updateFilterChip() {
 
 
   if (
-    selectedAirportFilter
+    airportFilter
   ) {
 
     chip.textContent =
-      selectedAirportFilter +
+      airportFilter +
       " ×";
 
+
     chip.classList
-      .add("visible");
+      .add(
+        "visible"
+      );
 
   } else {
 
-    chip.textContent = "";
+    chip.textContent =
+      "";
+
 
     chip.classList
-      .remove("visible");
+      .remove(
+        "visible"
+      );
 
   }
 
@@ -2296,17 +2707,18 @@ async function selectFlight(
 
   renderFlightList();
 
+
   drawSelectedLeg(
     flight
   );
 
 
-  openDetailPanel(
+  openDetail(
     flight
   );
 
 
-  await loadFplDetail(
+  await loadFpl(
     flight
   );
 
@@ -2314,7 +2726,7 @@ async function selectFlight(
 
 
 /************************************************************
- * DRAW SELECTED LEG
+ * DRAW LEG
  ************************************************************/
 
 function drawSelectedLeg(
@@ -2326,12 +2738,13 @@ function drawSelectedLeg(
 
 
   const dep =
-    airportIndex[
+    airportDb[
       flight.dep
     ];
 
+
   const arr =
-    airportIndex[
+    airportDb[
       flight.arr
     ];
 
@@ -2342,50 +2755,68 @@ function drawSelectedLeg(
   ) {
 
     return;
+
   }
 
 
-  /*
-   * straight line은 실제 ATS route가 아니라
-   * selected LEG 표시용.
-   */
-  const line =
-    L.polyline(
+  /**********************************************************
+   * 선택 LEG 표시
+   *
+   * 실제 ATS route line이 아니라
+   * DEP ↔ ARR 강조선
+   **********************************************************/
+
+  L.polyline(
+    [
+
       [
-        [
-          dep.lat,
-          dep.lon
-        ],
-        [
-          arr.lat,
-          arr.lon
-        ]
+        dep.lat,
+        dep.lon
       ],
-      {
-        weight: 4,
-        opacity: 0.8,
-        dashArray:
-          "8 6"
-      }
-    );
 
+      [
+        arr.lat,
+        arr.lon
+      ]
 
-  line.addTo(
+    ],
+    {
+
+      weight:
+        4,
+
+      opacity:
+        .85,
+
+      dashArray:
+        "9 7"
+
+    }
+  )
+  .addTo(
     selectedLegLayer
   );
 
 
-  /*
-   * DEP / ARR 강조 marker
-   */
+  /**********************************************************
+   * DEP / ARR 공항 강조
+   **********************************************************/
+
   [
     {
-      code: flight.dep,
-      airport: dep
+      code:
+        flight.dep,
+
+      data:
+        dep
     },
+
     {
-      code: flight.arr,
-      airport: arr
+      code:
+        flight.arr,
+
+      data:
+        arr
     }
   ]
   .forEach(
@@ -2394,15 +2825,17 @@ function drawSelectedLeg(
       const marker =
         L.marker(
           [
-            x.airport.lat,
-            x.airport.lon
+            x.data.lat,
+            x.data.lon
           ],
           {
+
             icon:
               createAirportIcon(
                 "selected",
                 0
               )
+
           }
         );
 
@@ -2410,13 +2843,19 @@ function drawSelectedLeg(
       marker.bindTooltip(
         x.code,
         {
-          permanent: true,
+
+          permanent:
+            true,
+
           direction:
             "bottom",
+
           offset:
-            [0, 12],
+            [0,12],
+
           className:
-            "airport-label"
+            "airport-tooltip"
+
         }
       );
 
@@ -2429,20 +2868,24 @@ function drawSelectedLeg(
   );
 
 
-  /*
-   * 두 공항이 화면에 모두 보이도록.
-   */
+  /**********************************************************
+   * 두 공항 전체가 한 화면에
+   **********************************************************/
+
   const bounds =
     L.latLngBounds(
       [
+
         [
           dep.lat,
           dep.lon
         ],
+
         [
           arr.lat,
           arr.lon
         ]
+
       ]
     );
 
@@ -2450,10 +2893,16 @@ function drawSelectedLeg(
   map.fitBounds(
     bounds,
     {
-      padding:
-        [70, 70],
 
-      maxZoom: 7
+      paddingTopLeft:
+        [390,80],
+
+      paddingBottomRight:
+        [430,80],
+
+      maxZoom:
+        7
+
     }
   );
 
@@ -2461,10 +2910,10 @@ function drawSelectedLeg(
 
 
 /************************************************************
- * DETAIL PANEL
+ * DETAIL OPEN
  ************************************************************/
 
-function openDetailPanel(
+function openDetail(
   flight
 ) {
 
@@ -2473,7 +2922,9 @@ function openDetailPanel(
       "detailPanel"
     )
     .classList
-    .add("open");
+    .add(
+      "open"
+    );
 
 
   document
@@ -2486,7 +2937,9 @@ function openDetailPanel(
         flight.acType
       ]
       .filter(Boolean)
-      .join(" · ");
+      .join(
+        " · "
+      );
 
 
   document
@@ -2507,8 +2960,8 @@ function openDetailPanel(
     .getElementById(
       "routeBox"
     )
-    .innerHTML =
-      '<span class="loading-box">ATS FPL 조회 중...</span>';
+    .textContent =
+      "ATS PLAN 조회 중...";
 
 
   document
@@ -2516,32 +2969,34 @@ function openDetailPanel(
       "originalBox"
     )
     .textContent =
-      "ATS FPL 조회 중...";
+      "ATS PLAN 조회 중...";
 
 }
 
 
 /************************************************************
- * CLOSE DETAIL
+ * DETAIL CLOSE
  ************************************************************/
 
-function closeDetailPanel() {
+function closeDetail() {
 
   document
     .getElementById(
       "detailPanel"
     )
     .classList
-    .remove("open");
+    .remove(
+      "open"
+    );
 
 }
 
 
 /************************************************************
- * LOAD ATS FPL
+ * LOAD FPL
  ************************************************************/
 
-async function loadFplDetail(
+async function loadFpl(
   flight
 ) {
 
@@ -2554,7 +3009,7 @@ async function loadFplDetail(
         "routeBox"
       )
       .textContent =
-        "FPL PK 없음";
+        "ATS PLAN 없음";
 
 
     document
@@ -2562,25 +3017,35 @@ async function loadFplDetail(
         "originalBox"
       )
       .textContent =
-        "FPL PK 없음";
+        "ATS PLAN 없음";
+
 
     return;
+
   }
 
 
   try {
+
+    const requestedPk =
+      String(
+        flight.amsRecPk
+      );
+
 
     const url =
       APPS_SCRIPT_URL +
       "?mode=fpl" +
       "&amsRecPk=" +
       encodeURIComponent(
-        flight.amsRecPk
+        requestedPk
       );
 
 
     const response =
-      await fetch(url);
+      await fetch(
+        url
+      );
 
 
     const data =
@@ -2588,17 +3053,16 @@ async function loadFplDetail(
 
 
     /*
-     * 다른 편 클릭 후 이전 요청이 늦게
-     * 도착한 경우 UI 덮어쓰기 방지.
+     * 다른 편 클릭 후
+     * 이전 request가 늦게 도착하는 경우 방지
      */
+
     if (
       !selectedFlight ||
       String(
         selectedFlight.amsRecPk
       ) !==
-      String(
-        flight.amsRecPk
-      )
+      requestedPk
     ) {
 
       return;
@@ -2613,7 +3077,7 @@ async function loadFplDetail(
 
       throw new Error(
         data.msg ||
-        "ATS FPL 조회 실패"
+        "ATS PLAN 조회 실패"
       );
 
     }
@@ -2625,7 +3089,7 @@ async function loadFplDetail(
       )
       .textContent =
         data.route ||
-        "Route 추출 실패";
+        "Route 없음";
 
 
     document
@@ -2634,12 +3098,14 @@ async function loadFplDetail(
       )
       .textContent =
         data.original ||
-        "ATS Original Message 없음";
+        "Original Message 없음";
 
 
   } catch (err) {
 
-    console.error(err);
+    console.error(
+      err
+    );
 
 
     document
@@ -2665,38 +3131,44 @@ async function loadFplDetail(
 
 
 /************************************************************
- * FIT ALL RESULTS
+ * FIT ALL RESULT AIRPORTS
  ************************************************************/
 
-function fitAllResultAirports() {
+function fitResultAirports() {
 
   if (
-    !resultAirportLayer
+    !resultLayer
       .getLayers()
       .length
   ) {
 
     return;
+
   }
 
 
   const bounds =
-    resultAirportLayer
+    resultLayer
       .getBounds();
 
 
   if (
-    bounds &&
     bounds.isValid()
   ) {
 
     map.fitBounds(
       bounds,
       {
-        padding:
-          [60, 60],
 
-        maxZoom: 6
+        paddingTopLeft:
+          [390,60],
+
+        paddingBottomRight:
+          [100,60],
+
+        maxZoom:
+          6
+
       }
     );
 
@@ -2709,7 +3181,7 @@ function fitAllResultAirports() {
  * RIGHT BOTTOM AIRPORT SEARCH
  ************************************************************/
 
-function searchAirportOnMap() {
+function searchAirport() {
 
   const code =
     document
@@ -2728,15 +3200,18 @@ function searchAirportOnMap() {
   ) {
 
     alert(
-      "4자리 ICAO 코드를 입력하세요."
+      "ICAO 4자리 코드를 입력하세요."
     );
 
     return;
+
   }
 
 
   const airport =
-    airportIndex[code];
+    airportDb[
+      code
+    ];
 
 
   if (!airport) {
@@ -2747,10 +3222,11 @@ function searchAirportOnMap() {
     );
 
     return;
+
   }
 
 
-  mapSearchLayer
+  searchLayer
     .clearLayers();
 
 
@@ -2761,39 +3237,49 @@ function searchAirportOnMap() {
         airport.lon
       ],
       {
+
         icon:
           createAirportIcon(
-            "selected",
+            "search",
             0
           )
+
       }
     );
-
-
-  marker.bindPopup(
-    `
-    <b>${escapeHtml(code)}</b><br>
-    ${escapeHtml(airport.name)}
-    `
-  );
 
 
   marker.bindTooltip(
     code,
     {
-      permanent: true,
+
+      permanent:
+        true,
+
       direction:
         "bottom",
+
       offset:
-        [0, 12],
+        [0,12],
+
       className:
-        "airport-label"
+        "airport-tooltip"
+
     }
   );
 
 
+  marker.bindPopup(
+    "<b>" +
+    escapeHtml(code) +
+    "</b><br>" +
+    escapeHtml(
+      airport.name
+    )
+  );
+
+
   marker.addTo(
-    mapSearchLayer
+    searchLayer
   );
 
 
@@ -2804,7 +3290,8 @@ function searchAirportOnMap() {
     ],
     8,
     {
-      duration: 0.8
+      duration:
+        .8
     }
   );
 
@@ -2815,32 +3302,78 @@ function searchAirportOnMap() {
 
 
 /************************************************************
+ * TIME
+ ************************************************************/
+
+function formatTime(
+  value
+) {
+
+  value =
+    String(
+      value || ""
+    );
+
+
+  if (
+    /^\d{4}$/.test(
+      value
+    )
+  ) {
+
+    return (
+      value.substring(
+        0,
+        2
+      ) +
+      ":" +
+      value.substring(
+        2
+      )
+    );
+
+  }
+
+
+  return value;
+
+}
+
+
+/************************************************************
  * HTML ESCAPE
  ************************************************************/
 
-function escapeHtml(value) {
+function escapeHtml(
+  value
+) {
 
   return String(
     value == null
       ? ""
       : value
   )
+
   .replace(
     /&/g,
     "&amp;"
   )
+
   .replace(
     /</g,
     "&lt;"
   )
+
   .replace(
     />/g,
     "&gt;"
   )
+
   .replace(
     /"/g,
     "&quot;"
   )
+
   .replace(
     /'/g,
     "&#039;"
