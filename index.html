@@ -3135,7 +3135,7 @@ function getCountryGroupByIcao(
     /^K/.test(
       code
     ) ||
-    /^(PA|PF|PO|PH|PG)/.test(
+    /^(PA|PF|PO|PH)/.test(
       code
     )
   ) {
@@ -3753,18 +3753,11 @@ async function searchFlights() {
     renderResultAirportsFast(
       thisSearchId
     );
-
-
-    enrichFlightsFromAtsPlan(
-      thisSearchId
-    ).catch(
-      function(err) {
-        console.warn(
-          "ATS PLAN background enrichment failed:",
-          err
-        );
-      }
-    );
+    /*
+     * V29:
+     * ATS PLAN DEP/ARR is already batch-resolved by the backend.
+     * No per-flight background Apps Script calls are started here.
+     */
 
 
   } catch (
