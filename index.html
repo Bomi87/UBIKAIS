@@ -2589,36 +2589,8 @@ function applyAtsPlanIdentity(
 
 function refreshVisibleFlightsAfterAts() {
 
-  if (
-    !activeAirportFilter
-  ) {
-
-    visibleFlights =
-      allFlights.slice();
-
-    return;
-
-  }
-
-
   visibleFlights =
-    allFlights.filter(
-      function(
-        flight
-      ) {
-
-        const counterpart =
-          direction ===
-          "arr"
-            ? flight.dep
-            : flight.arr;
-
-
-        return counterpart ===
-          activeAirportFilter;
-
-      }
-    );
+    allFlights.slice();
 
 }
 /************************************************************
