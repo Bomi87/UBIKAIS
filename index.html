@@ -1508,6 +1508,9 @@ const pendingAirportLookups =
 const pendingNominatimLookups =
   {};
 
+const fplDataCache = {};
+const pendingFplLookups = {};
+
 
 /************************************************************
  * MAP
@@ -2667,10 +2670,11 @@ async function lookupAirportDataApi(
  * NOMINATIM VIA APPS SCRIPT
  *
  * 브라우저 직접 호출 금지(CORS/429 회피).
- * Apps Script가 Nominatim을 대신 호출한다.
+ * Apps Script가 Airport-Data를 서버에서 재시도하고,
+ * 마지막으로 Nominatim을 호출한다.
  ************************************************************/
 
-async function geocodeAirportByNominatim(code) {
+async function geocodeAirportByBackendFallback(code) {
   code = normalizeIcao(code);
   if (!code) return null;
 
@@ -2704,7 +2708,7 @@ async function geocodeAirportByNominatim(code) {
         icao: code,
         lat: lat,
         lon: lon,
-        source: "Nominatim-via-Apps-Script"
+        source: String(data.airport.source || "Backend-Airport-Fallback")
       };
     } catch (err) {
       console.warn("Nominatim backend fallback failed:", code, err);
@@ -2724,7 +2728,7 @@ async function geocodeAirportByNominatim(code) {
  * 1. ACJ_NDB.kml
  * 2. permanent localStorage cache
  * 3. Airport-Data ICAO API
- * 4. Apps Script -> Nominatim
+ * 4. Apps Script -> Airport-Data retry -> Nominatim
  *
  * KML에 좌표가 있으면 외부 API 호출 0회.
  ************************************************************/
@@ -2756,11 +2760,11 @@ async function resolveAirportForFlightMap(code) {
     return airportData;
   }
 
-  const nominatim = await geocodeAirportByNominatim(code);
-  if (isValidAirportCoordinate(nominatim)) {
-    saveAirportToPermanentCache(nominatim);
-    console.log("[AIRPORT]", code, "NOMINATIM VIA BACKEND");
-    return nominatim;
+  const backendAirport = await geocodeAirportByBackendFallback(code);
+  if (isValidAirportCoordinate(backendAirport)) {
+    saveAirportToPermanentCache(backendAirport);
+    console.log("[AIRPORT]", code, "BACKEND FALLBACK", backendAirport.source || "");
+    return backendAirport;
   }
 
   console.warn("[AIRPORT]", code, "NOT FOUND");
@@ -3367,6 +3371,154 @@ function getFlightUniqueKey(
 }
 
 
+
+/************************************************************
+ * ATS PLAN BACKGROUND LEG CORRECTION
+ ************************************************************/
+
+async function fetchFplDataByPk(amsRecPk) {
+  const pk = String(amsRecPk || "").trim();
+  if (!pk) return null;
+
+  if (fplDataCache[pk]) return fplDataCache[pk];
+  if (pendingFplLookups[pk]) return pendingFplLookups[pk];
+
+  pendingFplLookups[pk] = (async function() {
+    try {
+      const url =
+        APPS_SCRIPT_URL +
+        "?mode=fpl" +
+        "&amsRecPk=" +
+        encodeURIComponent(pk);
+
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error("Backend HTTP " + response.status);
+      }
+
+      const data = await response.json();
+      if (!data || data.status !== "success") return null;
+
+      fplDataCache[pk] = data;
+      return data;
+
+    } catch (err) {
+      console.warn("ATS PLAN lookup failed:", pk, err);
+      return null;
+
+    } finally {
+      delete pendingFplLookups[pk];
+    }
+  })();
+
+  return pendingFplLookups[pk];
+}
+
+
+function applyAtsPlanIdentity(flight, data) {
+  if (!flight || !data) return false;
+
+  const atsDep = normalizeIcao(data.fplDep);
+  const atsArr = normalizeIcao(data.fplArr);
+  let changed = false;
+
+  if (atsDep && atsArr) {
+    if (!flight.listDep) flight.listDep = flight.dep || "";
+    if (!flight.listArr) flight.listArr = flight.arr || "";
+
+    if (
+      normalizeIcao(flight.dep) !== atsDep ||
+      normalizeIcao(flight.arr) !== atsArr
+    ) {
+      changed = true;
+    }
+
+    flight.dep = atsDep;
+    flight.arr = atsArr;
+    flight.legSource = "ATS";
+  }
+
+  const fplCallsign =
+    String(data.fplCallsign || "").trim().toUpperCase();
+
+  if (
+    fplCallsign &&
+    (
+      !flight.flight ||
+      /^HL\d{4}$/.test(String(flight.flight || "").toUpperCase())
+    )
+  ) {
+    flight.flight = fplCallsign;
+    changed = true;
+  }
+
+  return changed;
+}
+
+
+function refreshVisibleFlightsAfterAts() {
+  if (airportFilter) {
+    visibleFlights = allFlights.filter(function(flight) {
+      return (
+        normalizeIcao(flight.dep) === airportFilter ||
+        normalizeIcao(flight.arr) === airportFilter
+      );
+    });
+  } else {
+    visibleFlights = allFlights.slice();
+  }
+}
+
+
+async function enrichFlightsFromAtsPlan(searchId) {
+  const targets =
+    allFlights.filter(function(flight) {
+      return Boolean(flight && flight.amsRecPk);
+    });
+
+  if (!targets.length) return;
+
+  let cursor = 0;
+  let changedCount = 0;
+
+  async function worker() {
+    while (true) {
+      if (searchId !== activeSearchId) return;
+
+      const index = cursor++;
+      if (index >= targets.length) return;
+
+      const flight = targets[index];
+      const data = await fetchFplDataByPk(flight.amsRecPk);
+
+      if (searchId !== activeSearchId) return;
+
+      if (applyAtsPlanIdentity(flight, data)) {
+        changedCount++;
+
+        if (changedCount % 6 === 0) {
+          refreshVisibleFlightsAfterAts();
+          renderFlightList();
+        }
+      }
+    }
+  }
+
+  const concurrency = Math.min(6, targets.length);
+
+  await Promise.all(
+    Array.from({ length: concurrency }, worker)
+  );
+
+  if (searchId !== activeSearchId) return;
+
+  refreshVisibleFlightsAfterAts();
+  renderFlightList();
+
+  // ATS Item 13/16 기준으로 마커, 국가, badge도 다시 구성
+  renderResultAirportsFast(searchId);
+}
+
 /************************************************************
  * UBIKAIS SEARCH
  ************************************************************/
@@ -3574,6 +3726,18 @@ async function searchFlights() {
     );
 
 
+    enrichFlightsFromAtsPlan(
+      thisSearchId
+    ).catch(
+      function(err) {
+        console.warn(
+          "ATS PLAN background enrichment failed:",
+          err
+        );
+      }
+    );
+
+
   } catch (
     err
   ) {
@@ -3713,7 +3877,8 @@ function renderFlightList() {
 
       const airline =
         getAirlineName(
-          flight.flight
+          flight.flight,
+          flight.airlineName
         );
 
 
@@ -5207,145 +5372,60 @@ async function loadFpl(
   flight
 ) {
 
-  if (
-    !flight.amsRecPk
-  ) {
-
-    document
-      .getElementById(
-        "routeBox"
-      )
-      .textContent =
-        "ATS PLAN not filed yet.";
-
-
-    document
-      .getElementById(
-        "originalBox"
-      )
-      .textContent =
-        "ATS PLAN not filed yet.";
-
-
+  if (!flight.amsRecPk) {
+    document.getElementById("routeBox").textContent =
+      "ATS PLAN not filed yet.";
+    document.getElementById("originalBox").textContent =
+      "ATS PLAN not filed yet.";
     return;
-
   }
 
-
-  const requestedPk =
-    String(
-      flight.amsRecPk
-    );
-
-
-  const url =
-    APPS_SCRIPT_URL +
-
-    "?mode=fpl" +
-
-    "&amsRecPk=" +
-    encodeURIComponent(
-      requestedPk
-    );
-
+  const requestedPk = String(flight.amsRecPk);
 
   try {
-
-    const response =
-      await fetch(
-        url
-      );
-
-
-    if (
-      !response.ok
-    ) {
-
-      throw new Error(
-        "Backend HTTP " +
-        response.status
-      );
-
-    }
-
-
-    const data =
-      await response.json();
-
+    const data = await fetchFplDataByPk(requestedPk);
 
     if (
       !selectedFlight ||
-      String(
-        selectedFlight
-          .amsRecPk
-      ) !==
-      requestedPk
+      String(selectedFlight.amsRecPk) !== requestedPk
     ) {
-
       return;
-
     }
 
-
-    if (
-      data.status !==
-      "success"
-    ) {
-
-      throw new Error(
-        data.msg ||
-        "ATS PLAN 조회 실패"
-      );
-
+    if (!data) {
+      throw new Error("ATS PLAN 조회 실패");
     }
 
+    const identityChanged =
+      applyAtsPlanIdentity(flight, data);
 
-    document
-      .getElementById(
-        "routeBox"
-      )
-      .textContent =
-        data.route ||
-        "Route 없음";
+    if (identityChanged) {
+      refreshVisibleFlightsAfterAts();
+      renderFlightList();
 
+      document.getElementById("detailLeg").textContent =
+        (flight.dep || "-") +
+        " → " +
+        (flight.arr || "-");
 
-    document
-      .getElementById(
-        "originalBox"
-      )
-      .textContent =
-        data.original ||
-        "ATS Original Message 없음";
+      drawSelectedLeg(flight);
+    }
 
+    document.getElementById("routeBox").textContent =
+      data.route || "Route 없음";
 
-  } catch (
-    err
-  ) {
+    document.getElementById("originalBox").textContent =
+      data.original || "ATS Original Message 없음";
 
-    console.error(
-      err
-    );
+  } catch (err) {
+    console.error(err);
 
+    document.getElementById("routeBox").textContent =
+      "ERROR: " + (err.message || String(err));
 
-    document
-      .getElementById(
-        "routeBox"
-      )
-      .textContent =
-        "ERROR: " +
-        err.message;
-
-
-    document
-      .getElementById(
-        "originalBox"
-      )
-      .textContent =
-        "ERROR: " +
-        err.message;
-
+    document.getElementById("originalBox").textContent =
+      "ATS PLAN 조회 실패";
   }
-
 }
 
 
