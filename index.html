@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
 
 <meta charset="utf-8">
@@ -31,8 +32,10 @@
 html,
 body {
   margin: 0;
+
   width: 100%;
   height: 100%;
+
   overflow: hidden;
 
   font-family:
@@ -62,6 +65,7 @@ input {
 
 #map {
   position: fixed;
+
   inset: 0;
 
   width: 100vw;
@@ -357,7 +361,9 @@ input {
   display: flex;
 
   align-items: center;
-  justify-content: space-between;
+
+  justify-content:
+    space-between;
 
   gap: 8px;
 }
@@ -447,7 +453,9 @@ input {
   display: flex;
 
   align-items: center;
-  justify-content: space-between;
+
+  justify-content:
+    space-between;
 
   gap: 6px;
 
@@ -494,6 +502,7 @@ input {
     calc(100vh - 24px);
 
   display: none;
+
   flex-direction: column;
 
   overflow: hidden;
@@ -518,7 +527,9 @@ input {
   display: flex;
 
   align-items: flex-start;
-  justify-content: space-between;
+
+  justify-content:
+    space-between;
 
   gap: 8px;
 
@@ -595,7 +606,9 @@ input {
   display: flex;
 
   align-items: center;
-  justify-content: space-between;
+
+  justify-content:
+    space-between;
 
   gap: 8px;
 
@@ -703,6 +716,7 @@ input {
   display: flex;
 
   align-items: center;
+
   justify-content: center;
 
   width: 30px;
@@ -736,6 +750,7 @@ input {
   display: flex;
 
   align-items: center;
+
   justify-content: center;
 
   padding: 0 4px;
@@ -806,10 +821,10 @@ input {
   font-weight: 950;
 
   text-shadow:
-    -2px -2px 0 white,
-     2px -2px 0 white,
-    -2px  2px 0 white,
-     2px  2px 0 white,
+    -2px -2px 0 #ffffff,
+     2px -2px 0 #ffffff,
+    -2px  2px 0 #ffffff,
+     2px  2px 0 #ffffff,
      0 3px 6px rgba(0,0,0,.4);
 }
 
@@ -828,15 +843,15 @@ input {
     3px 6px !important;
 
   color:
-    white !important;
-
-  font-size: 10px;
-
-  font-weight: 900;
+    #ffffff !important;
 
   box-shadow:
     0 2px 6px
     rgba(0,0,0,.25) !important;
+
+  font-size: 10px;
+
+  font-weight: 900;
 }
 
 
@@ -894,7 +909,7 @@ input {
 
 
 /************************************************************
- * MAP AIRPORT SEARCH
+ * BOTTOM RIGHT SEARCH
  ************************************************************/
 
 .map-search {
@@ -926,9 +941,11 @@ input {
   padding: 7px 3px;
 
   text-align: center;
+
   text-transform: uppercase;
 
   font-size: 14px;
+
   font-weight: 900;
 }
 
@@ -947,6 +964,7 @@ input {
   color: white;
 
   font-size: 10px;
+
   font-weight: 900;
 
   cursor: pointer;
@@ -993,6 +1011,7 @@ input {
 
   .map-search {
     right: 8px;
+
     bottom: 8px;
   }
 
@@ -1010,9 +1029,9 @@ input {
 
 
 
-<!-- ======================================================
+<!-- ========================================================
      LEFT PANEL
-======================================================= -->
+========================================================= -->
 
 <div class="left-panel">
 
@@ -1070,8 +1089,10 @@ input {
 
         <input
           id="airportInput"
+          type="text"
           maxlength="4"
           value="RKSI"
+          placeholder="RKSI"
         >
 
 
@@ -1121,9 +1142,9 @@ input {
 
 
 
-<!-- ======================================================
+<!-- ========================================================
      DETAIL PANEL
-======================================================= -->
+========================================================= -->
 
 <div
   id="detailPanel"
@@ -1222,9 +1243,9 @@ input {
 
 
 
-<!-- ======================================================
+<!-- ========================================================
      BOTTOM RIGHT AIRPORT SEARCH
-======================================================= -->
+========================================================= -->
 
 <div class="map-search">
 
@@ -1257,27 +1278,22 @@ const APPS_SCRIPT_URL =
 
 
 /************************************************************
- * LOCAL AIRPORT DATA
+ * AIRPORT KML
+ *
+ * GitHub:
+ * Bomi87 / FLIGHT_MAP / ACJ_NDB.kml
  ************************************************************/
 
 const NDB_KML_URL =
   "https://bomi87.github.io/FLIGHT_MAP/ACJ_NDB.kml";
 
 
-const AIRPORT_INFO_URL =
-  "https://bomi87.github.io/FLIGHT_MAP/airport_info.json";
-
-
 /************************************************************
- * SINGLE-AIRPORT FALLBACK API
+ * SINGLE AIRPORT FALLBACK API
  *
- * ★ 전체 CSV 다운로드 안 함.
- *
- * MMTO 검색:
- *
- * https://airport-data.com/api/ap_info.json?icao=MMTO
- *
- * 딱 MMTO 하나만 조회.
+ * ★ 일반 ARR/DEP에서는 사용하지 않음.
+ * ★ 오른쪽 아래 AIRPORT 검색에서만 사용.
+ * ★ 한 번에 ICAO 1개만 조회.
  ************************************************************/
 
 const AIRPORT_FALLBACK_API =
@@ -1285,19 +1301,15 @@ const AIRPORT_FALLBACK_API =
 
 
 /************************************************************
- * LOCAL STORAGE
+ * STORAGE
  ************************************************************/
 
 const KML_STORAGE_KEY =
-  "UBIKAIS_AIRPORT_COORDS_V14";
-
-
-const AIRPORT_INFO_STORAGE_KEY =
-  "UBIKAIS_AIRPORT_INFO_V14";
+  "UBIKAIS_ACJ_NDB_AIRPORTS_V15";
 
 
 const FALLBACK_STORAGE_KEY =
-  "UBIKAIS_AIRPORT_API_CACHE_V14";
+  "UBIKAIS_SINGLE_AIRPORT_CACHE_V15";
 
 
 /************************************************************
@@ -1358,110 +1370,110 @@ const COUNTRY_COLORS = {
 
 
 /************************************************************
- * AIRLINE MAP
+ * AIRLINES
  ************************************************************/
 
 const AIRLINE_MAP = {
 
-  KAL:"Korean Air",
-  AAR:"Asiana Airlines",
-  JJA:"Jeju Air",
-  JNA:"Jin Air",
-  TWB:"T'way Air",
-  ESR:"Eastar Jet",
-  APZ:"Air Premia",
-  AIH:"Air Incheon",
-  ABL:"Air Busan",
-  ASV:"Air Seoul",
+  KAL: "Korean Air",
+  AAR: "Asiana Airlines",
+  JJA: "Jeju Air",
+  JNA: "Jin Air",
+  TWB: "T'way Air",
+  ESR: "Eastar Jet",
+  APZ: "Air Premia",
+  AIH: "Air Incheon",
+  ABL: "Air Busan",
+  ASV: "Air Seoul",
 
-  JAL:"Japan Airlines",
-  ANA:"All Nippon Airways",
-  APJ:"Peach Aviation",
-  JJP:"Jetstar Japan",
-  SKY:"Skymark Airlines",
-  SNJ:"Solaseed Air",
-  TZP:"ZIPAIR Tokyo",
+  JAL: "Japan Airlines",
+  ANA: "All Nippon Airways",
+  APJ: "Peach Aviation",
+  JJP: "Jetstar Japan",
+  SKY: "Skymark Airlines",
+  SNJ: "Solaseed Air",
+  TZP: "ZIPAIR Tokyo",
 
-  EVA:"EVA Air",
-  CAL:"China Airlines",
-  SJX:"STARLUX Airlines",
-  TTW:"Tigerair Taiwan",
+  EVA: "EVA Air",
+  CAL: "China Airlines",
+  SJX: "STARLUX Airlines",
+  TTW: "Tigerair Taiwan",
 
-  CCA:"Air China",
-  CES:"China Eastern Airlines",
-  CSN:"China Southern Airlines",
-  CXA:"Xiamen Airlines",
-  CHH:"Hainan Airlines",
-  CSZ:"Shenzhen Airlines",
-  CQH:"Spring Airlines",
-  DKH:"Juneyao Air",
+  CCA: "Air China",
+  CES: "China Eastern Airlines",
+  CSN: "China Southern Airlines",
+  CXA: "Xiamen Airlines",
+  CHH: "Hainan Airlines",
+  CSZ: "Shenzhen Airlines",
+  CQH: "Spring Airlines",
+  DKH: "Juneyao Air",
 
-  CPA:"Cathay Pacific",
-  CRK:"Hong Kong Airlines",
-  HKE:"HK Express",
-  AMU:"Air Macau",
+  CPA: "Cathay Pacific",
+  CRK: "Hong Kong Airlines",
+  HKE: "HK Express",
+  AMU: "Air Macau",
 
-  SIA:"Singapore Airlines",
-  TGW:"Scoot",
-  MAS:"Malaysia Airlines",
-  AXM:"AirAsia",
-  MXD:"Batik Air Malaysia",
-  THA:"Thai Airways",
-  PAL:"Philippine Airlines",
-  CEB:"Cebu Pacific",
-  GIA:"Garuda Indonesia",
-  HVN:"Vietnam Airlines",
-  VJC:"VietJet Air",
-  RBA:"Royal Brunei Airlines",
+  SIA: "Singapore Airlines",
+  TGW: "Scoot",
+  MAS: "Malaysia Airlines",
+  AXM: "AirAsia",
+  MXD: "Batik Air Malaysia",
+  THA: "Thai Airways",
+  PAL: "Philippine Airlines",
+  CEB: "Cebu Pacific",
+  GIA: "Garuda Indonesia",
+  HVN: "Vietnam Airlines",
+  VJC: "VietJet Air",
+  RBA: "Royal Brunei Airlines",
 
-  UAE:"Emirates",
-  QTR:"Qatar Airways",
-  ETD:"Etihad Airways",
-  SVA:"Saudia",
-  GFA:"Gulf Air",
-  OMA:"Oman Air",
-  KAC:"Kuwait Airways",
+  UAE: "Emirates",
+  QTR: "Qatar Airways",
+  ETD: "Etihad Airways",
+  SVA: "Saudia",
+  GFA: "Gulf Air",
+  OMA: "Oman Air",
+  KAC: "Kuwait Airways",
 
-  UAL:"United Airlines",
-  DAL:"Delta Air Lines",
-  AAL:"American Airlines",
-  ACA:"Air Canada",
-  WJA:"WestJet",
-  ASA:"Alaska Airlines",
-  HAL:"Hawaiian Airlines",
+  UAL: "United Airlines",
+  DAL: "Delta Air Lines",
+  AAL: "American Airlines",
+  ACA: "Air Canada",
+  WJA: "WestJet",
+  ASA: "Alaska Airlines",
+  HAL: "Hawaiian Airlines",
 
-  FDX:"FedEx Express",
-  UPS:"UPS Airlines",
-  GTI:"Atlas Air",
-  CLX:"Cargolux",
-  NCA:"Nippon Cargo Airlines",
+  FDX: "FedEx Express",
+  UPS: "UPS Airlines",
+  GTI: "Atlas Air",
+  CLX: "Cargolux",
+  NCA: "Nippon Cargo Airlines",
 
-  AFR:"Air France",
-  BAW:"British Airways",
-  DLH:"Lufthansa",
-  KLM:"KLM",
-  FIN:"Finnair",
-  SAS:"SAS",
-  LOT:"LOT Polish Airlines",
-  SWR:"Swiss",
-  AUA:"Austrian Airlines",
-  ITY:"ITA Airways",
-  IBE:"Iberia",
-  THY:"Turkish Airlines",
-  VIR:"Virgin Atlantic",
+  AFR: "Air France",
+  BAW: "British Airways",
+  DLH: "Lufthansa",
+  KLM: "KLM",
+  FIN: "Finnair",
+  SAS: "SAS",
+  LOT: "LOT Polish Airlines",
+  SWR: "Swiss",
+  AUA: "Austrian Airlines",
+  ITY: "ITA Airways",
+  IBE: "Iberia",
+  THY: "Turkish Airlines",
+  VIR: "Virgin Atlantic",
 
-  QFA:"Qantas",
-  ANZ:"Air New Zealand",
+  QFA: "Qantas",
+  ANZ: "Air New Zealand",
 
-  ETH:"Ethiopian Airlines",
-  SAA:"South African Airways",
+  ETH: "Ethiopian Airlines",
+  SAA: "South African Airways",
 
-  MGL:"MIAT Mongolian Airlines",
-  KZR:"Air Astana",
-  UZB:"Uzbekistan Airways",
+  MGL: "MIAT Mongolian Airlines",
+  KZR: "Air Astana",
+  UZB: "Uzbekistan Airways",
 
-  AIC:"Air India",
-  IGO:"IndiGo"
+  AIC: "Air India",
+  IGO: "IndiGo"
 
 };
 
@@ -1494,13 +1506,15 @@ let activeSearchId =
   0;
 
 
-let userMovedMap =
-  false;
-
-
 /************************************************************
- * AIRPORT DATABASE
+ * AIRPORT DATABASES
  ************************************************************/
+
+/*
+ * KML 좌표 DB.
+ *
+ * 초기 페이지 로드부터 localStorage 값 즉시 사용.
+ */
 
 let airportDb =
   loadJsonStorage(
@@ -1508,25 +1522,11 @@ let airportDb =
   );
 
 
-let airportInfoDb =
-  loadJsonStorage(
-    AIRPORT_INFO_STORAGE_KEY
-  );
-
-
 /*
- * 중요:
+ * 오른쪽 아래 AIRPORT 검색에서
+ * 실제로 검색했던 공항만 저장.
  *
- * 여기는 전체 공항 DB가 아님.
- *
- * 사용자가 실제로 fallback 검색한 공항만 쌓인다.
- *
- * 예:
- *
- * {
- *   "MMTO": {...},
- *   "KEWR": {...}
- * }
+ * 전체 공항 DB 아님.
  */
 
 let fallbackAirportCache =
@@ -1536,8 +1536,7 @@ let fallbackAirportCache =
 
 
 /*
- * 같은 공항을 동시에 여러 군데서 요청할 때
- * API 중복호출 방지.
+ * 동일 공항 API 동시 요청 방지.
  */
 
 const pendingAirportLookups =
@@ -1625,32 +1624,6 @@ const searchLayer =
 
 
 /************************************************************
- * USER MOVEMENT
- ************************************************************/
-
-map.on(
-  "dragstart",
-  function() {
-
-    userMovedMap =
-      true;
-
-  }
-);
-
-
-map.on(
-  "zoomstart",
-  function() {
-
-    userMovedMap =
-      true;
-
-  }
-);
-
-
-/************************************************************
  * INIT
  ************************************************************/
 
@@ -1664,8 +1637,10 @@ document.addEventListener(
 
 
     /*
-     * KML cache가 이미 있으면 즉시 사용.
-     * 최신본은 background refresh.
+     * KML만 background refresh.
+     *
+     * 외부 airport API는
+     * 페이지 시작 시 절대 호출되지 않는다.
      */
 
     refreshAirportKml()
@@ -1673,24 +1648,7 @@ document.addEventListener(
         function(err) {
 
           console.warn(
-            "KML refresh failed:",
-            err
-          );
-
-        }
-      );
-
-
-    /*
-     * airport_info.json도 동일.
-     */
-
-    refreshAirportInfo()
-      .catch(
-        function(err) {
-
-          console.warn(
-            "airport_info.json refresh failed:",
+            "Airport KML refresh failed:",
             err
           );
 
@@ -1724,18 +1682,18 @@ function loadJsonStorage(
     }
 
 
-    const value =
+    const parsed =
       JSON.parse(
         raw
       );
 
 
     return (
-      value &&
-      typeof value ===
+      parsed &&
+      typeof parsed ===
         "object"
     )
-      ? value
+      ? parsed
       : {};
 
   } catch (
@@ -1778,7 +1736,7 @@ function saveJsonStorage(
 
 
 /************************************************************
- * DATE
+ * TODAY
  ************************************************************/
 
 function setToday() {
@@ -2032,7 +1990,7 @@ function setDirection(
 
 async function refreshAirportKml() {
 
-  const res =
+  const response =
     await fetch(
       NDB_KML_URL,
       {
@@ -2043,19 +2001,19 @@ async function refreshAirportKml() {
 
 
   if (
-    !res.ok
+    !response.ok
   ) {
 
     throw new Error(
       "KML HTTP " +
-      res.status
+      response.status
     );
 
   }
 
 
   const text =
-    await res.text();
+    await response.text();
 
 
   const db =
@@ -2128,13 +2086,13 @@ function buildAirportDbFromKml(
       }
 
 
-      const coordinates =
+      const coordNode =
         point.getElementsByTagName(
           "coordinates"
         )[0];
 
 
-      if (!coordinates) {
+      if (!coordNode) {
 
         return;
 
@@ -2177,7 +2135,7 @@ function buildAirportDbFromKml(
 
       const coordText =
         String(
-          coordinates.textContent ||
+          coordNode.textContent ||
           ""
         )
         .trim()
@@ -2190,6 +2148,15 @@ function buildAirportDbFromKml(
         coordText.split(
           ","
         );
+
+
+      if (
+        parts.length < 2
+      ) {
+
+        return;
+
+      }
 
 
       const lon =
@@ -2246,70 +2213,86 @@ function buildAirportDbFromKml(
 
 
 /************************************************************
- * AIRPORT INFO JSON
+ * NORMAL AIRPORT LOOKUP
+ *
+ * ★ ARR/DEP 결과 지도용
+ *
+ * 중요:
+ * 여기에서는 외부 API를 절대 호출하지 않는다.
  ************************************************************/
 
-async function refreshAirportInfo() {
+function getAirportLocalOnly(
+  code
+) {
 
-  const res =
-    await fetch(
-      AIRPORT_INFO_URL,
-      {
-        cache:
-          "no-cache"
-      }
-    );
+  code =
+    String(
+      code || ""
+    )
+      .trim()
+      .toUpperCase();
 
 
   if (
-    !res.ok
+    !/^[A-Z]{4}$/.test(
+      code
+    )
   ) {
 
-    throw new Error(
-      "airport_info.json HTTP " +
-      res.status
-    );
+    return null;
 
   }
 
 
-  const data =
-    await res.json();
-
+  /*
+   * 1. KML
+   */
 
   if (
-    !data ||
-    typeof data !==
-      "object"
+    airportDb[
+      code
+    ]
   ) {
 
-    throw new Error(
-      "Invalid airport_info.json"
-    );
+    return airportDb[
+      code
+    ];
 
   }
 
 
-  airportInfoDb =
-    data;
+  /*
+   * 2. 예전에 AIRPORT 검색을 통해
+   *    이미 localStorage에 저장된 공항.
+   *
+   * 새 API 호출은 하지 않는다.
+   */
+
+  if (
+    fallbackAirportCache[
+      code
+    ]
+  ) {
+
+    return fallbackAirportCache[
+      code
+    ];
+
+  }
 
 
-  saveJsonStorage(
-    AIRPORT_INFO_STORAGE_KEY,
-    data
-  );
+  return null;
 
 }
 
 
 /************************************************************
- * SINGLE ICAO API LOOKUP
+ * SINGLE AIRPORT API LOOKUP
  *
- * 중요:
+ * ★ 오직 오른쪽 아래 AIRPORT 검색에서만 사용.
  *
- * MMTO를 요청하면 MMTO 하나만 요청.
- *
- * airports.csv 다운로드 없음.
+ * MMTO 검색:
+ * → MMTO 1개만 요청.
  ************************************************************/
 
 async function lookupSingleAirportFromApi(
@@ -2336,7 +2319,7 @@ async function lookupSingleAirportFromApi(
 
 
   /**********************************************************
-   * 이미 검색했던 공항이면 API 호출 안 함.
+   * 이미 받은 적 있으면 API 재호출 없음.
    **********************************************************/
 
   if (
@@ -2353,7 +2336,7 @@ async function lookupSingleAirportFromApi(
 
 
   /**********************************************************
-   * 같은 ICAO에 대한 중복 동시 요청 방지
+   * 동일 ICAO 중복 요청 방지
    **********************************************************/
 
   if (
@@ -2383,10 +2366,11 @@ async function lookupSingleAirportFromApi(
           );
 
 
-        const res =
+        const response =
           await fetch(
             url,
             {
+
               method:
                 "GET",
 
@@ -2405,34 +2389,37 @@ async function lookupSingleAirportFromApi(
 
 
         if (
-          !res.ok
+          !response.ok
         ) {
 
           throw new Error(
             "Airport API HTTP " +
-            res.status
+            response.status
           );
 
         }
 
 
         const data =
-          await res.json();
+          await response.json();
+
+
+        if (!data) {
+
+          return null;
+
+        }
 
 
         /*
-         * Airport-Data 응답에 status가 있는 경우.
+         * API 에러 응답 방지.
          */
 
         if (
-          data &&
+          data.status &&
           Number(
             data.status
-          ) &&
-          Number(
-            data.status
-          ) !==
-            200
+          ) !== 200
         ) {
 
           return null;
@@ -2452,24 +2439,6 @@ async function lookupSingleAirportFromApi(
           );
 
 
-        /*
-         * 좌표가 없다면 지도표시 불가능.
-         */
-
-        if (
-          !Number.isFinite(
-            lat
-          ) ||
-          !Number.isFinite(
-            lon
-          )
-        ) {
-
-          return null;
-
-        }
-
-
         const airport =
           {
 
@@ -2477,10 +2446,18 @@ async function lookupSingleAirportFromApi(
               code,
 
             lat:
-              lat,
+              Number.isFinite(
+                lat
+              )
+                ? lat
+                : null,
 
             lon:
-              lon,
+              Number.isFinite(
+                lon
+              )
+                ? lon
+                : null,
 
             name:
               String(
@@ -2500,12 +2477,6 @@ async function lookupSingleAirportFromApi(
                 ""
               ).trim(),
 
-            countryCode:
-              String(
-                data.country_code ||
-                ""
-              ).trim(),
-
             iata:
               String(
                 data.iata ||
@@ -2513,7 +2484,7 @@ async function lookupSingleAirportFromApi(
               ).trim(),
 
             source:
-              "Airport-Data API",
+              "Airport API",
 
             cachedAt:
               Date.now()
@@ -2521,9 +2492,27 @@ async function lookupSingleAirportFromApi(
           };
 
 
-        /******************************************************
-         * 검색한 공항 하나만 cache에 추가.
-         ******************************************************/
+        /*
+         * 아무 정보도 없다면 유효한 결과가 아님.
+         */
+
+        if (
+          !airport.name &&
+          !airport.location &&
+          !airport.country &&
+          !Number.isFinite(
+            airport.lat
+          )
+        ) {
+
+          return null;
+
+        }
+
+
+        /*
+         * ★ 이 ICAO 하나만 저장.
+         */
 
         fallbackAirportCache[
           code
@@ -2545,7 +2534,7 @@ async function lookupSingleAirportFromApi(
       ) {
 
         console.warn(
-          "Single airport API lookup failed:",
+          "Airport API lookup failed:",
           code,
           err
         );
@@ -2573,23 +2562,18 @@ async function lookupSingleAirportFromApi(
 
 
 /************************************************************
- * RESOLVE AIRPORT
+ * AIRPORT SEARCH RESOLVER
+ *
+ * ★ 오른쪽 아래 AIRPORT 버튼 전용.
  *
  * 좌표:
+ * KML 우선 → API
  *
- * 1. KML
- * 2. cached API
- * 3. single ICAO API
- *
- *
- * 공항정보:
- *
- * 1. airport_info.json
- * 2. cached API
- * 3. single ICAO API
+ * 공항명/국가:
+ * API
  ************************************************************/
 
-async function resolveAirport(
+async function resolveAirportForSearch(
   code
 ) {
 
@@ -2613,10 +2597,10 @@ async function resolveAirport(
 
 
   /**********************************************************
-   * LOCAL COORDINATES
+   * KML 좌표
    **********************************************************/
 
-  const kml =
+  const local =
     airportDb[
       code
     ] ||
@@ -2624,18 +2608,7 @@ async function resolveAirport(
 
 
   /**********************************************************
-   * LOCAL AIRPORT INFO
-   **********************************************************/
-
-  const localInfo =
-    airportInfoDb[
-      code
-    ] ||
-    null;
-
-
-  /**********************************************************
-   * EXISTING API CACHE
+   * 이전 API CACHE
    **********************************************************/
 
   let api =
@@ -2646,59 +2619,11 @@ async function resolveAirport(
 
 
   /**********************************************************
-   * API가 필요한지 판단.
-   *
-   * 아래 중 하나라도 없으면 API 한 건 조회:
-   *
-   * - 좌표
-   * - 공항 이름
-   * - 국가
+   * 공항명/국가를 표시하기 위해
+   * API cache가 없으면 이 ICAO 한 건만 요청.
    **********************************************************/
 
-  const haveCoordinate =
-    !!(
-      kml &&
-      Number.isFinite(
-        Number(
-          kml.lat
-        )
-      ) &&
-      Number.isFinite(
-        Number(
-          kml.lon
-        )
-      )
-    );
-
-
-  const haveName =
-    !!(
-      localInfo &&
-      String(
-        localInfo.name ||
-        ""
-      ).trim()
-    );
-
-
-  const haveCountry =
-    !!(
-      localInfo &&
-      String(
-        localInfo.country ||
-        ""
-      ).trim()
-    );
-
-
-  if (
-    !api &&
-    (
-      !haveCoordinate ||
-      !haveName ||
-      !haveCountry
-    )
-  ) {
+  if (!api) {
 
     api =
       await lookupSingleAirportFromApi(
@@ -2711,7 +2636,7 @@ async function resolveAirport(
   /**********************************************************
    * COORDINATE
    *
-   * KML 우선.
+   * KML이 있으면 반드시 KML 우선.
    **********************************************************/
 
   let lat =
@@ -2722,28 +2647,30 @@ async function resolveAirport(
     null;
 
 
-  let coordinateSource =
-    "";
-
-
   if (
-    haveCoordinate
+    local &&
+    Number.isFinite(
+      Number(
+        local.lat
+      )
+    ) &&
+    Number.isFinite(
+      Number(
+        local.lon
+      )
+    )
   ) {
 
     lat =
       Number(
-        kml.lat
+        local.lat
       );
 
 
     lon =
       Number(
-        kml.lon
+        local.lon
       );
-
-
-    coordinateSource =
-      "KML";
 
   } else if (
     api &&
@@ -2770,15 +2697,11 @@ async function resolveAirport(
         api.lon
       );
 
-
-    coordinateSource =
-      "Airport-Data API";
-
   }
 
 
   /*
-   * 좌표가 끝까지 없으면 지도 표시 불가능.
+   * 좌표가 없으면 지도에 표시 불가.
    */
 
   if (
@@ -2795,114 +2718,6 @@ async function resolveAirport(
   }
 
 
-  /**********************************************************
-   * AIRPORT NAME
-   **********************************************************/
-
-  let name =
-    "";
-
-
-  if (
-    localInfo &&
-    localInfo.name
-  ) {
-
-    name =
-      String(
-        localInfo.name
-      ).trim();
-
-  }
-
-
-  if (
-    !name &&
-    api &&
-    api.name
-  ) {
-
-    name =
-      String(
-        api.name
-      ).trim();
-
-  }
-
-
-  /**********************************************************
-   * COUNTRY
-   **********************************************************/
-
-  let country =
-    "";
-
-
-  if (
-    localInfo &&
-    localInfo.country
-  ) {
-
-    country =
-      String(
-        localInfo.country
-      ).trim();
-
-  }
-
-
-  if (
-    !country &&
-    api &&
-    api.country
-  ) {
-
-    country =
-      String(
-        api.country
-      ).trim();
-
-  }
-
-
-  /**********************************************************
-   * LOCATION
-   *
-   * 현재 airport_info.json에는 없어도 됨.
-   * API fallback에서 있으면 표시.
-   **********************************************************/
-
-  let location =
-    "";
-
-
-  if (
-    localInfo &&
-    localInfo.location
-  ) {
-
-    location =
-      String(
-        localInfo.location
-      ).trim();
-
-  }
-
-
-  if (
-    !location &&
-    api &&
-    api.location
-  ) {
-
-    location =
-      String(
-        api.location
-      ).trim();
-
-  }
-
-
   return {
 
     icao:
@@ -2915,42 +2730,35 @@ async function resolveAirport(
       lon,
 
     name:
-      name,
+      api
+        ? String(
+            api.name ||
+            ""
+          ).trim()
+        : "",
 
     location:
-      location,
+      api
+        ? String(
+            api.location ||
+            ""
+          ).trim()
+        : "",
 
     country:
-      country,
+      api
+        ? String(
+            api.country ||
+            ""
+          ).trim()
+        : "",
 
     coordinateSource:
-      coordinateSource,
-
-    infoSource:
-      localInfo
-        ? "airport_info.json"
-        : (
-            api
-              ? "Airport-Data API"
-              : ""
-          )
+      local
+        ? "KML"
+        : "API"
 
   };
-
-}
-
-
-/************************************************************
- * NORMAL GET AIRPORT
- ************************************************************/
-
-async function getAirport(
-  code
-) {
-
-  return resolveAirport(
-    code
-  );
 
 }
 
@@ -3100,7 +2908,7 @@ function getAirlineName(
 
 
 /************************************************************
- * COUNTRY GROUP
+ * REGION / COUNTRY GROUP
  ************************************************************/
 
 function getCountryGroupByIcao(
@@ -3122,6 +2930,10 @@ function getCountryGroupByIcao(
   }
 
 
+  /*
+   * KOREA
+   */
+
   if (
     /^RK/.test(
       code
@@ -3132,6 +2944,10 @@ function getCountryGroupByIcao(
 
   }
 
+
+  /*
+   * JAPAN
+   */
 
   if (
     /^(RJ|RO)/.test(
@@ -3144,6 +2960,10 @@ function getCountryGroupByIcao(
   }
 
 
+  /*
+   * TAIWAN
+   */
+
   if (
     /^RC/.test(
       code
@@ -3154,6 +2974,10 @@ function getCountryGroupByIcao(
 
   }
 
+
+  /*
+   * HONG KONG / MACAU
+   */
 
   if (
     /^(VH|VM)/.test(
@@ -3167,7 +2991,12 @@ function getCountryGroupByIcao(
 
 
   /*
-   * China Mainland
+   * MAINLAND CHINA
+   *
+   * ZK = North Korea
+   * ZM = Mongolia
+   *
+   * 따라서 단순 /^Z/ 사용 안 함.
    */
 
   if (
@@ -3200,7 +3029,7 @@ function getCountryGroupByIcao(
 
 
   /*
-   * Canada
+   * CANADA
    */
 
   if (
@@ -3215,7 +3044,7 @@ function getCountryGroupByIcao(
 
 
   /*
-   * India
+   * INDIA
    */
 
   if (
@@ -3230,9 +3059,9 @@ function getCountryGroupByIcao(
 
 
   /*
-   * Southeast Asia
+   * SOUTHEAST ASIA
    *
-   * VY = Myanmar 포함.
+   * VY = Myanmar 포함
    */
 
   if (
@@ -3247,7 +3076,9 @@ function getCountryGroupByIcao(
 
 
   /*
-   * Middle East
+   * MIDDLE EAST
+   *
+   * LL Israel 포함.
    */
 
   if (
@@ -3262,7 +3093,7 @@ function getCountryGroupByIcao(
 
 
   /*
-   * South America
+   * SOUTH AMERICA
    */
 
   if (
@@ -3277,7 +3108,7 @@ function getCountryGroupByIcao(
 
 
   /*
-   * Central Asia / Mongolia
+   * CENTRAL ASIA / MONGOLIA
    */
 
   if (
@@ -3292,7 +3123,7 @@ function getCountryGroupByIcao(
 
 
   /*
-   * Oceania
+   * OCEANIA
    */
 
   if (
@@ -3307,7 +3138,7 @@ function getCountryGroupByIcao(
 
 
   /*
-   * Europe
+   * EUROPE
    */
 
   if (
@@ -3322,7 +3153,7 @@ function getCountryGroupByIcao(
 
 
   /*
-   * Africa
+   * AFRICA
    */
 
   if (
@@ -3493,7 +3324,7 @@ function getFlightUniqueKey(
 
 
 /************************************************************
- * SEARCH UBIKAIS FLIGHTS
+ * SEARCH FLIGHTS
  ************************************************************/
 
 async function searchFlights() {
@@ -3534,10 +3365,6 @@ async function searchFlights() {
     return;
 
   }
-
-
-  userMovedMap =
-    false;
 
 
   const thisSearchId =
@@ -3593,7 +3420,7 @@ async function searchFlights() {
       );
 
 
-    const res =
+    const response =
       await fetch(
         url,
         {
@@ -3604,19 +3431,19 @@ async function searchFlights() {
 
 
     if (
-      !res.ok
+      !response.ok
     ) {
 
       throw new Error(
         "Backend HTTP " +
-        res.status
+        response.status
       );
 
     }
 
 
     const data =
-      await res.json();
+      await response.json();
 
 
     if (
@@ -3690,15 +3517,22 @@ async function searchFlights() {
       allFlights.slice();
 
 
+    /*
+     * 리스트 즉시 표시.
+     */
+
     renderFlightList();
 
 
+    /*
+     * 지도는 KML/local cache만 사용.
+     *
+     * 외부 Airport API 호출 없음.
+     */
+
     renderResultAirportsFast(
       thisSearchId
-    )
-      .catch(
-        console.error
-      );
+    );
 
 
   } catch (
@@ -3774,7 +3608,7 @@ function resetResults() {
 
 
   /*
-   * Bottom-right ▼ marker 유지.
+   * 오른쪽 아래 AIRPORT 검색 marker는 유지.
    */
 
 
@@ -3795,7 +3629,7 @@ function resetResults() {
 
 
 /************************************************************
- * LIST
+ * RENDER LIST
  ************************************************************/
 
 function renderFlightList() {
@@ -4031,7 +3865,7 @@ function renderFlightList() {
 
 
 /************************************************************
- * AIRPORT FLIGHT MAP
+ * AIRPORT / FLIGHT MAP
  ************************************************************/
 
 function makeAirportFlightMap() {
@@ -4131,12 +3965,26 @@ function makeAirportFlightMap() {
 
 
 /************************************************************
- * MAP RESULT
+ * FAST RESULT MAP
+ *
+ * ★ API 호출 없음
+ * ★ async lookup 없음
+ * ★ airportDb 바로 조회
  ************************************************************/
 
-async function renderResultAirportsFast(
+function renderResultAirportsFast(
   searchId
 ) {
+
+  if (
+    searchId !==
+    activeSearchId
+  ) {
+
+    return;
+
+  }
+
 
   resultLayer
     .clearLayers();
@@ -4147,19 +3995,9 @@ async function renderResultAirportsFast(
 
 
   const queryAirport =
-    await getAirport(
+    getAirportLocalOnly(
       queryCode
     );
-
-
-  if (
-    searchId !==
-    activeSearchId
-  ) {
-
-    return;
-
-  }
 
 
   const referenceLon =
@@ -4180,118 +4018,23 @@ async function renderResultAirportsFast(
     );
 
 
-  /**********************************************************
-   * KML 또는 기존 캐시에 있는 공항은 먼저 즉시 표시.
-   *
-   * 없는 공항만 resolveAirport가 API 한 건 조회.
-   **********************************************************/
-
-  const localCodes =
-    [];
-
-
-  const fallbackCodes =
-    [];
-
-
   codes.forEach(
     function(code) {
 
-      if (
-        airportDb[
-          code
-        ] ||
-        fallbackAirportCache[
-          code
-        ]
-      ) {
-
-        localCodes.push(
-          code
-        );
-
-      } else {
-
-        fallbackCodes.push(
-          code
-        );
-
-      }
-
-    }
-  );
-
-
-  /*
-   * 이미 좌표 있는 공항 먼저.
-   */
-
-  for (
-    const code
-    of localCodes
-  ) {
-
-    const airport =
-      await resolveAirport(
-        code
-      );
-
-
-    if (
-      !airport ||
-      searchId !==
-        activeSearchId
-    ) {
-
-      continue;
-
-    }
-
-
-    addResultAirportMarker(
-
-      code,
-
-      airport,
-
-      airportMap[
-        code
-      ],
-
-      queryCode,
-
-      referenceLon
-
-    );
-
-  }
-
-
-  fitResultAirports(
-    true
-  );
-
-
-  /*
-   * 좌표가 없는 공항은 API fallback.
-   *
-   * 각각 해당 ICAO 1건씩만 조회.
-   */
-
-  fallbackCodes.forEach(
-    async function(code) {
+      /*
+       * 중요:
+       * KML/local cache만.
+       *
+       * 없다고 API 호출하지 않는다.
+       */
 
       const airport =
-        await resolveAirport(
+        getAirportLocalOnly(
           code
         );
 
 
-      if (
-        !airport ||
-        searchId !==
-          activeSearchId
-      ) {
+      if (!airport) {
 
         return;
 
@@ -4314,13 +4057,11 @@ async function renderResultAirportsFast(
 
       );
 
-      /*
-       * 여기서 다시 fit하지 않음.
-       * 사용자가 움직인 지도를 뺏지 않게.
-       */
-
     }
   );
+
+
+  fitResultAirports();
 
 }
 
@@ -4457,7 +4198,7 @@ function addResultAirportMarker(
 
 
 /************************************************************
- * NORMAL ICON
+ * NORMAL AIRPORT ICON
  ************************************************************/
 
 function makeAirportIcon(
@@ -4527,7 +4268,7 @@ function makeAirportIcon(
 
 
 /************************************************************
- * SEARCH ICON
+ * SEARCH AIRPORT ICON
  ************************************************************/
 
 function makeSearchAirportIcon() {
@@ -4571,13 +4312,11 @@ function makeSearchAirportIcon() {
 
 
 /************************************************************
- * BOTTOM RIGHT AIRPORT SEARCH
+ * BOTTOM-RIGHT AIRPORT SEARCH
  *
- * 절대 UBIKAIS 검색을 실행하지 않는다.
+ * ★ 여기서만 Airport API 사용 가능.
  *
- * airportInput 변경 안 함.
- * allFlights 변경 안 함.
- * visibleFlights 변경 안 함.
+ * UBIKAIS 리스트와 완전히 독립.
  ************************************************************/
 
 async function searchAirportOnMap() {
@@ -4625,22 +4364,106 @@ async function searchAirportOnMap() {
   try {
 
     /********************************************************
-     * RESOLVE
+     * STEP 1
      *
-     * KML
-     * ↓
-     * airport_info.json
-     * ↓
-     * API single lookup
+     * KML 좌표가 있으면 우선 즉시 지도 이동.
      ********************************************************/
 
-    const airport =
-      await resolveAirport(
+    const localAirport =
+      airportDb[
+        code
+      ] ||
+      null;
+
+
+    let marker =
+      null;
+
+
+    let latlng =
+      null;
+
+
+    if (
+      localAirport
+    ) {
+
+      latlng =
+        getRenderLatLng(
+          localAirport,
+          map.getCenter().lng
+        );
+
+
+      searchLayer
+        .clearLayers();
+
+
+      marker =
+        createSearchAirportMarker(
+          code,
+          latlng
+        );
+
+
+      marker.bindPopup(
+        makeAirportPopup(
+          code,
+          null
+        )
+      );
+
+
+      marker.addTo(
+        searchLayer
+      );
+
+
+      /*
+       * 좌표는 이미 KML에 있으므로
+       * API 응답을 기다리지 않고 바로 이동.
+       */
+
+      map.flyTo(
+        latlng,
+        8,
+        {
+          duration:
+            .7
+        }
+      );
+
+
+      marker.openPopup();
+
+    }
+
+
+    /********************************************************
+     * STEP 2
+     *
+     * 공항명 / 국가 등을 위해
+     * 검색한 ICAO 한 개만 API 조회.
+     *
+     * 이미 cache에 있으면 네트워크 호출 없음.
+     ********************************************************/
+
+    const apiAirport =
+      await lookupSingleAirportFromApi(
         code
       );
 
 
-    if (!airport) {
+    /********************************************************
+     * STEP 3
+     *
+     * KML에도 없고 API도 없으면 실패.
+     ********************************************************/
+
+    if (
+      !localAirport &&
+      !apiAirport
+    ) {
 
       alert(
         code +
@@ -4653,187 +4476,140 @@ async function searchAirportOnMap() {
 
 
     /********************************************************
-     * PREVIOUS SEARCH MARKER REMOVE
+     * STEP 4
+     *
+     * 최종 좌표 결정.
+     *
+     * KML 우선.
      ********************************************************/
 
-    searchLayer
-      .clearLayers();
+    const finalAirport =
+      localAirport
+        ? {
+
+            icao:
+              code,
+
+            lat:
+              Number(
+                localAirport.lat
+              ),
+
+            lon:
+              Number(
+                localAirport.lon
+              ),
+
+            name:
+              apiAirport
+                ? apiAirport.name
+                : "",
+
+            location:
+              apiAirport
+                ? apiAirport.location
+                : "",
+
+            country:
+              apiAirport
+                ? apiAirport.country
+                : ""
+
+          }
+        : apiAirport;
+
+
+    if (
+      !finalAirport ||
+      !Number.isFinite(
+        Number(
+          finalAirport.lat
+        )
+      ) ||
+      !Number.isFinite(
+        Number(
+          finalAirport.lon
+        )
+      )
+    ) {
+
+      alert(
+        code +
+        " 공항 좌표를 찾을 수 없습니다."
+      );
+
+      return;
+
+    }
 
 
     /********************************************************
-     * WORLD LONGITUDE
+     * STEP 5
+     *
+     * KML에 없었던 공항이면
+     * 이제 API 좌표로 marker 생성.
      ********************************************************/
 
-    const referenceLon =
-      map
-        .getCenter()
-        .lng;
+    if (
+      !localAirport
+    ) {
+
+      searchLayer
+        .clearLayers();
 
 
-    const latlng =
-      getRenderLatLng(
-        airport,
-        referenceLon
+      latlng =
+        getRenderLatLng(
+          finalAirport,
+          map.getCenter().lng
+        );
+
+
+      marker =
+        createSearchAirportMarker(
+          code,
+          latlng
+        );
+
+
+      marker.addTo(
+        searchLayer
       );
 
 
-    /********************************************************
-     * ▼ MARKER
-     ********************************************************/
-
-    const marker =
-      L.marker(
+      map.flyTo(
         latlng,
+        8,
         {
-
-          icon:
-            makeSearchAirportIcon(),
-
-          zIndexOffset:
-            5000
-
+          duration:
+            .7
         }
       );
 
-
-    marker.bindTooltip(
-      code,
-      {
-
-        permanent:
-          true,
-
-        direction:
-          "top",
-
-        offset:
-          [
-            0,
-            -18
-          ],
-
-        className:
-          "search-airport-label"
-
-      }
-    );
-
-
-    /********************************************************
-     * POPUP
-     ********************************************************/
-
-    let popup =
-      `
-
-      <div class="search-popup">
-
-        <div class="search-popup-code">
-          ${escapeHtml(
-            code
-          )}
-        </div>
-
-      `;
-
-
-    if (
-      airport.name
-    ) {
-
-      popup +=
-        `
-
-        <div class="search-popup-name">
-          ${escapeHtml(
-            airport.name
-          )}
-        </div>
-
-        `;
-
     }
 
 
-    /*
-     * Airport-Data의 location:
+    /********************************************************
+     * STEP 6
      *
-     * 예:
-     * Toluca, Estado de México
-     * New York, NY
-     */
-
-    if (
-      airport.location
-    ) {
-
-      popup +=
-        `
-
-        <div class="search-popup-location">
-          ${escapeHtml(
-            airport.location
-          )}
-        </div>
-
-        `;
-
-    }
-
-
-    if (
-      airport.country
-    ) {
-
-      popup +=
-        `
-
-        <div class="search-popup-country">
-          ${escapeHtml(
-            airport.country
-          )}
-        </div>
-
-        `;
-
-    }
-
-
-    popup +=
-      `
-
-      </div>
-
-      `;
-
-
-    marker.bindPopup(
-      popup
-    );
-
-
-    marker.addTo(
-      searchLayer
-    );
-
-
-    /********************************************************
-     * MOVE MAP ONLY
+     * 최종 팝업 업데이트.
      ********************************************************/
 
-    map.flyTo(
-      latlng,
-      8,
-      {
+    if (
+      marker
+    ) {
 
-        duration:
-          .7
+      marker.bindPopup(
+        makeAirportPopup(
+          code,
+          finalAirport
+        )
+      );
 
-      }
-    );
 
+      marker.openPopup();
 
-    marker.openPopup();
+    }
 
 
   } catch (
@@ -4861,6 +4637,161 @@ async function searchAirportOnMap() {
       "AIRPORT";
 
   }
+
+}
+
+
+/************************************************************
+ * CREATE SEARCH MARKER
+ ************************************************************/
+
+function createSearchAirportMarker(
+  code,
+  latlng
+) {
+
+  const marker =
+    L.marker(
+      latlng,
+      {
+
+        icon:
+          makeSearchAirportIcon(),
+
+        zIndexOffset:
+          5000
+
+      }
+    );
+
+
+  marker.bindTooltip(
+    code,
+    {
+
+      permanent:
+        true,
+
+      direction:
+        "top",
+
+      offset:
+        [
+          0,
+          -18
+        ],
+
+      className:
+        "search-airport-label"
+
+    }
+  );
+
+
+  return marker;
+
+}
+
+
+/************************************************************
+ * AIRPORT SEARCH POPUP
+ ************************************************************/
+
+function makeAirportPopup(
+  code,
+  airport
+) {
+
+  let html =
+    `
+
+    <div class="search-popup">
+
+      <div class="search-popup-code">
+        ${escapeHtml(
+          code
+        )}
+      </div>
+
+    `;
+
+
+  /*
+   * API 정보가 아직 없으면
+   * ICAO만 보여준다.
+   *
+   * "Unavailable" 같은 문구는 넣지 않음.
+   */
+
+  if (
+    airport
+  ) {
+
+    if (
+      airport.name
+    ) {
+
+      html +=
+        `
+
+        <div class="search-popup-name">
+          ${escapeHtml(
+            airport.name
+          )}
+        </div>
+
+        `;
+
+    }
+
+
+    if (
+      airport.location
+    ) {
+
+      html +=
+        `
+
+        <div class="search-popup-location">
+          ${escapeHtml(
+            airport.location
+          )}
+        </div>
+
+        `;
+
+    }
+
+
+    if (
+      airport.country
+    ) {
+
+      html +=
+        `
+
+        <div class="search-popup-country">
+          ${escapeHtml(
+            airport.country
+          )}
+        </div>
+
+        `;
+
+    }
+
+  }
+
+
+  html +=
+    `
+
+    </div>
+
+    `;
+
+
+  return html;
 
 }
 
@@ -5034,27 +4965,23 @@ function selectFlight(
 
   drawSelectedLeg(
     flight
-  )
-    .catch(
-      console.error
-    );
+  );
 
 
   loadFpl(
     flight
-  )
-    .catch(
-      console.error
-    );
+  );
 
 }
 
 
 /************************************************************
  * DRAW SELECTED LEG
+ *
+ * ★ API 호출 없음
  ************************************************************/
 
-async function drawSelectedLeg(
+function drawSelectedLeg(
   flight
 ) {
 
@@ -5062,28 +4989,16 @@ async function drawSelectedLeg(
     .clearLayers();
 
 
-  const airports =
-    await Promise.all(
-      [
-
-        getAirport(
-          flight.dep
-        ),
-
-        getAirport(
-          flight.arr
-        )
-
-      ]
+  const dep =
+    getAirportLocalOnly(
+      flight.dep
     );
 
 
-  const dep =
-    airports[0];
-
-
   const arr =
-    airports[1];
+    getAirportLocalOnly(
+      flight.arr
+    );
 
 
   if (
@@ -5097,7 +5012,7 @@ async function drawSelectedLeg(
 
 
   const queryAirport =
-    await getAirport(
+    getAirportLocalOnly(
       getQueryAirportCode()
     );
 
@@ -5384,6 +5299,10 @@ function openDetail(
 }
 
 
+/************************************************************
+ * CLOSE DETAIL
+ ************************************************************/
+
 function closeDetail() {
 
   document
@@ -5450,26 +5369,26 @@ async function loadFpl(
 
   try {
 
-    const res =
+    const response =
       await fetch(
         url
       );
 
 
     if (
-      !res.ok
+      !response.ok
     ) {
 
       throw new Error(
         "Backend HTTP " +
-        res.status
+        response.status
       );
 
     }
 
 
     const data =
-      await res.json();
+      await response.json();
 
 
     if (
@@ -5750,22 +5669,10 @@ function resetCopyButton(
 
 
 /************************************************************
- * FIT RESULTS
+ * FIT RESULT AIRPORTS
  ************************************************************/
 
-function fitResultAirports(
-  force
-) {
-
-  if (
-    !force &&
-    userMovedMap
-  ) {
-
-    return;
-
-  }
-
+function fitResultAirports() {
 
   if (
     !resultLayer
@@ -5834,8 +5741,10 @@ function escapeHtml(
 ) {
 
   return String(
-    value === null ||
-    value === undefined
+    value ===
+      null ||
+    value ===
+      undefined
       ? ""
       : value
   )
