@@ -1911,49 +1911,6 @@ function clearSkyVectorReturnState() {
 }
 
 
-function armSkyVectorSameDocumentCleanup() {
-
-  let wentHidden =
-    document.hidden;
-
-  function handleVisibility() {
-
-    if (
-      document.hidden
-    ) {
-
-      wentHidden =
-        true;
-
-      return;
-
-    }
-
-    if (
-      wentHidden
-    ) {
-
-      clearSkyVectorReturnState();
-
-      document
-        .removeEventListener(
-          "visibilitychange",
-          handleVisibility
-        );
-
-    }
-
-  }
-
-  document
-    .addEventListener(
-      "visibilitychange",
-      handleVisibility
-    );
-
-}
-
-
 async function restoreSkyVectorReturnState() {
 
   let state =
@@ -6679,8 +6636,6 @@ function openSkyVectorFromDetail() {
 
 
   saveSkyVectorReturnState();
-
-  armSkyVectorSameDocumentCleanup();
 
 
   window.open(
