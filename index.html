@@ -1168,13 +1168,25 @@ input {
         </div>
 
 
-        <button
-          id="copyRouteBtn"
-          class="copy-btn"
-          type="button"
-        >
-          COPY
-        </button>
+        <div style="display:flex;align-items:center;gap:6px;">
+
+          <button
+            id="skyVectorBtn"
+            class="copy-btn"
+            type="button"
+          >
+            SKYVECTOR
+          </button>
+
+          <button
+            id="copyRouteBtn"
+            class="copy-btn"
+            type="button"
+          >
+            COPY
+          </button>
+
+        </div>
 
       </div>
 
@@ -2072,6 +2084,14 @@ function bindEvents() {
     )
     .onclick =
       searchAirportOnMap;
+
+
+  document
+    .getElementById(
+      "skyVectorBtn"
+    )
+    .onclick =
+      openSkyVectorFromDetail;
 
 
   document
@@ -5891,6 +5911,98 @@ async function copyToClipboard(
     );
 
   }
+
+}
+
+
+function openSkyVectorFromDetail() {
+
+  if (!selectedFlight) {
+
+    alert(
+      "항공편을 먼저 선택하세요."
+    );
+
+    return;
+
+  }
+
+
+  const dep =
+    normalizeIcao(
+      selectedFlight.dep
+    );
+
+
+  const arr =
+    normalizeIcao(
+      selectedFlight.arr
+    );
+
+
+  const route =
+    String(
+      document
+        .getElementById(
+          "routeBox"
+        )
+        .textContent ||
+      ""
+    )
+      .replace(
+        /\s+/g,
+        " "
+      )
+      .trim();
+
+
+  if (
+    !dep ||
+    !arr ||
+    !route ||
+    route ===
+      "ATS PLAN 조회 중..." ||
+    route ===
+      "ATS PLAN not filed yet." ||
+    route ===
+      "Route 없음" ||
+    /^ERROR:/i.test(
+      route
+    )
+  ) {
+
+    alert(
+      "SkyVector에 표시할 ROUTE가 없습니다."
+    );
+
+    return;
+
+  }
+
+
+  const fpl =
+    [
+      dep,
+      route,
+      arr
+    ]
+      .join(
+        " "
+      );
+
+
+  const url =
+    "https://skyvector.com/?fpl=" +
+    encodeURIComponent(
+      fpl
+    );
+
+
+  window.open(
+    url,
+    "_blank",
+    "noopener,noreferrer"
+  );
 
 }
 
