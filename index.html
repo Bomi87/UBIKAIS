@@ -995,7 +995,7 @@ input {
       minmax(0, .95fr)
       minmax(0, 1.05fr);
 
-    gap: 10px;
+    gap: 12px;
 
     align-items: start;
   }
@@ -1005,6 +1005,7 @@ input {
   .mobile-controls-right {
     display: block;
     min-width: 0;
+    width: 100%;
   }
 
 
@@ -1027,9 +1028,15 @@ input {
 
 
   #dateInput {
+    width: 100%;
+    min-width: 0;
+
     height: 30px;
     min-height: 30px;
+
     padding: 2px 5px;
+
+    box-sizing: border-box;
   }
 
 
@@ -1047,23 +1054,34 @@ input {
 
 
   .query-row {
-    gap: 4px;
+    display: grid;
 
     grid-template-columns:
-      minmax(0, 1fr)
-      62px;
+      minmax(0, 1fr);
+
+    gap: 4px;
+
+    min-width: 0;
   }
 
 
   #airportInput {
+    width: 100%;
+    min-width: 0;
+
     height: 30px;
     min-height: 30px;
+
+    box-sizing: border-box;
   }
 
 
   .query-btn {
+    width: 100%;
+
     min-height: 30px;
     height: 30px;
+
     font-size: 9px;
   }
 
