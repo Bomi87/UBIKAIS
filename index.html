@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="ko">
 
 <head>
@@ -11,16 +10,13 @@
   content="width=device-width, initial-scale=1.0"
 >
 
-<title>
-  UBIKAIS ATS Flight Plan Map
-</title>
+<title>UBIKAIS ATS Flight Plan Map</title>
 
 
 <link
   rel="stylesheet"
   href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
 >
-
 
 <script
   src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
@@ -35,12 +31,9 @@
 
 html,
 body {
-
   margin: 0;
-
   width: 100%;
   height: 100%;
-
   overflow: hidden;
 
   font-family:
@@ -50,14 +43,11 @@ body {
     Roboto,
     Arial,
     sans-serif;
-
 }
-
 
 * {
   box-sizing: border-box;
 }
-
 
 button,
 input {
@@ -65,22 +55,19 @@ input {
 }
 
 
-
 /************************************************************
  * MAP
  ************************************************************/
 
 #map {
-
   position: fixed;
-
   inset: 0;
 
   width: 100vw;
   height: 100vh;
 
+  background: #eef2f6;
 }
-
 
 
 /************************************************************
@@ -88,7 +75,6 @@ input {
  ************************************************************/
 
 .left-panel {
-
   position: fixed;
 
   top: 12px;
@@ -97,12 +83,9 @@ input {
   z-index: 1100;
 
   width: 390px;
-
-  max-height:
-    calc(100vh - 24px);
+  max-height: calc(100vh - 24px);
 
   display: flex;
-
   flex-direction: column;
 
   overflow: hidden;
@@ -115,30 +98,26 @@ input {
   box-shadow:
     0 4px 18px
     rgba(0,0,0,.22);
-
 }
 
 
 .left-header {
+  flex: 0 0 auto;
 
   padding: 12px;
 
   border-bottom:
     1px solid #e5e7eb;
-
 }
 
 
 .app-title {
-
   margin-bottom: 10px;
 
   color: #111827;
 
   font-size: 16px;
-
   font-weight: 900;
-
 }
 
 
@@ -148,20 +127,16 @@ input {
 
 
 .label {
-
   margin-bottom: 4px;
 
   color: #4b5563;
 
   font-size: 11px;
-
   font-weight: 700;
-
 }
 
 
 input {
-
   width: 100%;
 
   padding: 8px;
@@ -173,10 +148,10 @@ input {
 
   background: white;
 
+  color: #111827;
+
   font-size: 13px;
-
 }
-
 
 
 /************************************************************
@@ -184,7 +159,6 @@ input {
  ************************************************************/
 
 .mode-row {
-
   display: grid;
 
   grid-template-columns:
@@ -193,12 +167,10 @@ input {
   gap: 6px;
 
   margin-bottom: 8px;
-
 }
 
 
 .mode-btn {
-
   border: 0;
 
   padding: 9px;
@@ -210,20 +182,15 @@ input {
   color: white;
 
   font-size: 12px;
-
   font-weight: 900;
 
   cursor: pointer;
-
 }
 
 
 .mode-btn.active {
-
   background: #2563eb;
-
 }
-
 
 
 /************************************************************
@@ -231,19 +198,16 @@ input {
  ************************************************************/
 
 .query-row {
-
   display: grid;
 
   grid-template-columns:
     1fr 86px;
 
   gap: 6px;
-
 }
 
 
 .query-btn {
-
   border: 0;
 
   border-radius: 8px;
@@ -253,20 +217,22 @@ input {
   color: white;
 
   font-size: 11px;
-
   font-weight: 900;
 
   cursor: pointer;
+}
 
+
+.query-btn:hover {
+  background: #374151;
 }
 
 
 .query-btn:disabled {
-
   background: #9ca3af;
 
+  cursor: not-allowed;
 }
-
 
 
 /************************************************************
@@ -274,22 +240,18 @@ input {
  ************************************************************/
 
 .status-row {
-
   display: flex;
+
+  align-items: center;
+  flex-wrap: wrap;
 
   gap: 6px;
 
-  align-items: center;
-
-  flex-wrap: wrap;
-
   margin-top: 8px;
-
 }
 
 
 .count-chip {
-
   padding: 4px 7px;
 
   border-radius: 999px;
@@ -299,14 +261,11 @@ input {
   color: #111827;
 
   font-size: 10px;
-
   font-weight: 900;
-
 }
 
 
 .filter-chip {
-
   display: none;
 
   border: 0;
@@ -320,28 +279,50 @@ input {
   color: #1d4ed8;
 
   font-size: 10px;
-
   font-weight: 900;
 
   cursor: pointer;
-
 }
 
 
 .filter-chip.visible {
-
   display: inline-block;
-
 }
 
 
+/************************************************************
+ * NEAREST ATS NOTICE
+ ************************************************************/
+
+.nearest-notice {
+  display: none;
+
+  margin-top: 7px;
+
+  padding: 7px 8px;
+
+  border-radius: 7px;
+
+  background: #fff7ed;
+
+  color: #9a3412;
+
+  font-size: 10px;
+
+  font-weight: 800;
+}
+
+
+.nearest-notice.visible {
+  display: block;
+}
+
 
 /************************************************************
- * LIST
+ * FLIGHT LIST
  ************************************************************/
 
 #flightList {
-
   flex: 1 1 auto;
 
   min-height: 0;
@@ -349,12 +330,10 @@ input {
   overflow-y: auto;
 
   padding: 5px;
-
 }
 
 
 .empty {
-
   padding: 20px 10px;
 
   text-align: center;
@@ -362,11 +341,11 @@ input {
   color: #6b7280;
 
   font-size: 12px;
-
 }
 
 
 .flight-item {
+  position: relative;
 
   margin-bottom: 2px;
 
@@ -383,48 +362,33 @@ input {
 
   cursor: pointer;
 
+  transition:
+    background .12s ease;
 }
 
 
 .flight-item:hover {
-
-  background:
-    #f3f4f6;
-
+  background: #f3f4f6;
 }
 
 
 .flight-item.active {
-
-  background:
-    #e8f1ff;
-
+  background: #e8f1ff;
 }
 
 
 .flight-top {
-
   display: flex;
 
-  justify-content:
-    space-between;
-
   align-items: center;
+  justify-content: space-between;
 
   gap: 8px;
-
 }
 
 
 .flight-ident {
-
   min-width: 0;
-
-  color: #374151;
-
-  font-size: 11px;
-
-  font-weight: 850;
 
   overflow: hidden;
 
@@ -432,23 +396,25 @@ input {
 
   text-overflow: ellipsis;
 
+  color: #374151;
+
+  font-size: 11px;
+  font-weight: 850;
 }
 
 
 .airline-name {
-
   margin-left: 3px;
 
   color: #6b7280;
 
   font-size: 9.5px;
-
-  font-weight: 600;
-
+  font-weight: 650;
 }
 
 
 .aircraft {
+  flex: 0 0 auto;
 
   padding: 2px 6px;
 
@@ -459,51 +425,68 @@ input {
   color: #111827;
 
   font-size: 10px;
-
   font-weight: 900;
-
 }
 
 
+/************************************************************
+ * LEG
+ ************************************************************/
+
 .flight-leg {
+  display: flex;
+
+  align-items: baseline;
+  flex-wrap: wrap;
 
   margin-top: 4px;
 
   font-size: 17px;
-
-  line-height: 1.18;
+  line-height: 1.22;
 
   font-weight: 950;
+}
 
+
+/************************************************************
+ * NO FPL
+ ************************************************************/
+
+.no-fpl-text {
+  margin-left: 7px;
+
+  color: #dc2626;
+
+  font-size: 10px;
+  line-height: 1.2;
+
+  font-weight: 850;
+
+  white-space: nowrap;
 }
 
 
 .flight-bottom {
-
   display: flex;
 
-  justify-content:
-    space-between;
-
   align-items: center;
+  justify-content: space-between;
 
   gap: 6px;
 
   margin-top: 5px;
-
 }
 
 
 .flight-reg {
-
   color: #6b7280;
 
   font-size: 9.5px;
-
 }
 
 
 .country-chip {
+  flex: 0 0 auto;
 
   padding: 2px 7px;
 
@@ -512,11 +495,8 @@ input {
   color: white;
 
   font-size: 9px;
-
   font-weight: 900;
-
 }
-
 
 
 /************************************************************
@@ -524,7 +504,6 @@ input {
  ************************************************************/
 
 .detail-panel {
-
   position: fixed;
 
   top: 12px;
@@ -551,26 +530,19 @@ input {
   box-shadow:
     0 4px 18px
     rgba(0,0,0,.26);
-
 }
 
 
 .detail-panel.open {
-
   display: flex;
-
 }
 
 
 .detail-header {
-
   display: flex;
 
-  justify-content:
-    space-between;
-
-  align-items:
-    flex-start;
+  align-items: flex-start;
+  justify-content: space-between;
 
   gap: 8px;
 
@@ -578,46 +550,40 @@ input {
 
   border-bottom:
     1px solid #e5e7eb;
-
 }
 
 
 .detail-head-left {
-
   flex: 1 1 auto;
 
   min-width: 0;
-
 }
 
 
 .detail-leg {
-
   color: #111827;
 
   font-size: 22px;
-
   line-height: 1.15;
 
   font-weight: 950;
-
 }
 
 
 .detail-flight {
-
   margin-top: 5px;
 
   color: #6b7280;
 
   font-size: 11px;
+  line-height: 1.3;
 
   font-weight: 800;
-
 }
 
 
 .close-btn {
+  flex: 0 0 auto;
 
   width: 32px;
   height: 32px;
@@ -631,47 +597,38 @@ input {
   color: #111827;
 
   font-size: 18px;
-
   font-weight: 900;
 
   cursor: pointer;
-
 }
 
 
 .detail-body {
-
   overflow-y: auto;
 
   padding: 12px;
-
 }
 
 
 .section {
-
   margin-bottom: 15px;
-
 }
 
 
 .section-head {
-
   display: flex;
 
-  justify-content:
-    space-between;
-
   align-items: center;
+  justify-content: space-between;
 
   gap: 8px;
 
   margin-bottom: 6px;
-
 }
 
 
 .section-title {
+  display: inline-block;
 
   padding: 3px 7px;
 
@@ -682,14 +639,11 @@ input {
   color: #1e3a8a;
 
   font-size: 11px;
-
   font-weight: 900;
-
 }
 
 
 .copy-btn {
-
   border: 0;
 
   padding: 5px 9px;
@@ -701,23 +655,18 @@ input {
   color: white;
 
   font-size: 9px;
-
   font-weight: 900;
 
   cursor: pointer;
-
 }
 
 
 .copy-btn.copied {
-
   background: #16a34a;
-
 }
 
 
 .route-box {
-
   padding: 10px;
 
   border:
@@ -727,15 +676,16 @@ input {
 
   background: #f8fafc;
 
-  font-size: 12px;
+  color: #111827;
 
+  font-size: 12px;
   line-height: 1.55;
 
+  word-break: break-word;
 }
 
 
 .original-box {
-
   max-height: 460px;
 
   overflow-y: auto;
@@ -749,19 +699,16 @@ input {
   color: #e5e7eb;
 
   white-space: pre-wrap;
-
   word-break: break-word;
 
   font-family:
     Consolas,
+    "Courier New",
     monospace;
 
   font-size: 10px;
-
   line-height: 1.45;
-
 }
-
 
 
 /************************************************************
@@ -769,17 +716,14 @@ input {
  ************************************************************/
 
 .airport-wrap {
-
   position: relative;
 
   width: 40px;
   height: 40px;
-
 }
 
 
 .airport-icon {
-
   display: flex;
 
   align-items: center;
@@ -800,14 +744,11 @@ input {
     rgba(0,0,0,.42);
 
   font-size: 15px;
-
   font-weight: 900;
-
 }
 
 
 .airport-badge {
-
   position: absolute;
 
   top: -7px;
@@ -833,14 +774,11 @@ input {
   color: white;
 
   font-size: 9px;
-
   font-weight: 900;
-
 }
 
 
 .airport-label {
-
   background:
     transparent !important;
 
@@ -852,7 +790,6 @@ input {
   color: #111827;
 
   font-size: 10px;
-
   font-weight: 950;
 
   text-shadow:
@@ -860,9 +797,7 @@ input {
      1px -1px 0 white,
     -1px  1px 0 white,
      1px  1px 0 white;
-
 }
-
 
 
 /************************************************************
@@ -870,7 +805,6 @@ input {
  ************************************************************/
 
 .map-search {
-
   position: fixed;
 
   right: 14px;
@@ -890,12 +824,10 @@ input {
   box-shadow:
     0 2px 10px
     rgba(0,0,0,.24);
-
 }
 
 
 .map-search input {
-
   margin-bottom: 5px;
 
   padding: 7px 3px;
@@ -904,13 +836,12 @@ input {
 
   text-transform: uppercase;
 
+  font-size: 14px;
   font-weight: 900;
-
 }
 
 
 .map-search button {
-
   width: 100%;
 
   border: 0;
@@ -924,13 +855,15 @@ input {
   color: white;
 
   font-size: 10px;
-
   font-weight: 900;
 
   cursor: pointer;
-
 }
 
+
+.map-search button:disabled {
+  background: #9ca3af;
+}
 
 
 /************************************************************
@@ -941,7 +874,6 @@ input {
 (max-width: 767px) {
 
   .left-panel {
-
     top: 8px;
     left: 8px;
 
@@ -949,12 +881,10 @@ input {
       calc(100vw - 16px);
 
     max-height: 44vh;
-
   }
 
 
   .detail-panel {
-
     top: auto;
 
     left: 8px;
@@ -964,15 +894,12 @@ input {
     width: auto;
 
     max-height: 52vh;
-
   }
 
 
   .map-search {
-
     right: 8px;
     bottom: 8px;
-
   }
 
 }
@@ -988,7 +915,8 @@ input {
 <div id="map"></div>
 
 
-<!-- LEFT -->
+
+<!-- LEFT PANEL -->
 
 <div class="left-panel">
 
@@ -1040,10 +968,12 @@ input {
         Airport ICAO
       </div>
 
+
       <div class="query-row">
 
         <input
           id="airportInput"
+          type="text"
           maxlength="4"
           value="RKSI"
         >
@@ -1051,6 +981,7 @@ input {
         <button
           id="queryBtn"
           class="query-btn"
+          type="button"
         >
           SEARCH
         </button>
@@ -1072,9 +1003,16 @@ input {
       <button
         id="filterChip"
         class="filter-chip"
+        type="button"
       ></button>
 
     </div>
+
+
+    <div
+      id="nearestNotice"
+      class="nearest-notice"
+    ></div>
 
   </div>
 
@@ -1114,9 +1052,11 @@ input {
 
     </div>
 
+
     <button
       id="closeDetail"
       class="close-btn"
+      type="button"
     >
       ×
     </button>
@@ -1137,6 +1077,7 @@ input {
         <button
           id="copyRouteBtn"
           class="copy-btn"
+          type="button"
         >
           COPY
         </button>
@@ -1162,6 +1103,7 @@ input {
         <button
           id="copyOriginalBtn"
           class="copy-btn"
+          type="button"
         >
           COPY
         </button>
@@ -1181,7 +1123,7 @@ input {
 
 
 
-<!-- MAP SEARCH -->
+<!-- MAP AIRPORT SEARCH -->
 
 <div class="map-search">
 
@@ -1193,6 +1135,7 @@ input {
 
   <button
     id="mapAirportBtn"
+    type="button"
   >
     AIRPORT
   </button>
@@ -1211,74 +1154,94 @@ const APPS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycby8SXVmuTrmYnMTyloD9Gk5q1VY8xgjIxwgBevDFQF1svEV2ErSxo8nFZdpP4I8tAFLpQ/exec";
 
 
+/************************************************************
+ * KML
+ ************************************************************/
+
 const NDB_KML_URL =
   "https://bomi87.github.io/FLIGHT_MAP/ACJ_NDB.kml";
 
 
-/************************************************************
- * STORAGE
- ************************************************************/
-
 const KML_STORAGE_KEY =
-  "UBIKAIS_ACJ_NDB_AIRPORTS_V6";
+  "UBIKAIS_ACJ_NDB_AIRPORTS_V9";
 
 
 const FALLBACK_STORAGE_KEY =
-  "UBIKAIS_AIRPORT_FALLBACK_V6";
+  "UBIKAIS_AIRPORT_FALLBACK_V9";
 
 
 /************************************************************
- * COUNTRY / GROUP COLORS
+ * NEAREST AIRPORT SEARCH SETTINGS
+ ************************************************************/
+
+/*
+ * 물리적으로 가까운 공항 후보 수
+ */
+
+const NEAREST_CANDIDATE_LIMIT =
+  18;
+
+
+/*
+ * 한번에 병렬 조회할 공항 수
+ */
+
+const NEAREST_BATCH_SIZE =
+  4;
+
+
+/************************************************************
+ * COLORS
  ************************************************************/
 
 const COUNTRY_COLORS = {
 
-  Korea:
+  "Korea":
+    "#111111",
+
+  "China":
     "#dc2626",
 
-  Japan:
-    "#ec4899",
-
-  Taiwan:
-    "#f97316",
-
-  China:
+  "Japan":
     "#2563eb",
+
+  "Middle East":
+    "#facc15",
+
+  "Taiwan":
+    "#f97316",
 
   "Hong Kong / Macau":
     "#0ea5e9",
 
-  USA:
+  "USA":
     "#16a34a",
 
-  Canada:
+  "Canada":
     "#22c55e",
 
-  Europe:
+  "Europe":
     "#7c3aed",
 
-  SoutheastAsia:
+  "Southeast Asia":
     "#06b6d4",
 
-  India:
+  "India":
     "#f59e0b",
 
-  MiddleEast:
-    "#e11d48",
-
-  CentralAsia:
+  "Central Asia":
     "#64748b",
 
-  Oceania:
+  "Oceania":
     "#0891b2",
 
-  Africa:
+  "Africa":
     "#14b8a6",
 
-  SouthAmerica:
+  "South America":
     "#84cc16",
 
-  Other:
+  "Other":
     "#64748b"
 
 };
@@ -1301,47 +1264,64 @@ const AIRLINE_MAP = {
   ABL: "Air Busan",
   ASV: "Air Seoul",
 
-  CPA: "Cathay Pacific",
-
-  CCA: "Air China",
-  CES: "China Eastern",
-  CSN: "China Southern",
-  CXA: "Xiamen Airlines",
-  CHH: "Hainan Airlines",
-
   JAL: "Japan Airlines",
   ANA: "All Nippon Airways",
-  SKY: "Skymark Airlines",
   APJ: "Peach Aviation",
+  JJP: "Jetstar Japan",
+  SKY: "Skymark Airlines",
   SNJ: "Solaseed Air",
+  TZP: "ZIPAIR Tokyo",
 
   EVA: "EVA Air",
   CAL: "China Airlines",
-  TTW: "Tigerair Taiwan",
   SJX: "STARLUX Airlines",
+  TTW: "Tigerair Taiwan",
+
+  CCA: "Air China",
+  CES: "China Eastern Airlines",
+  CSN: "China Southern Airlines",
+  CXA: "Xiamen Airlines",
+  CHH: "Hainan Airlines",
+  CSZ: "Shenzhen Airlines",
+  CQH: "Spring Airlines",
+  DKH: "Juneyao Air",
+
+  CPA: "Cathay Pacific",
+  CRK: "Hong Kong Airlines",
+  HKE: "HK Express",
+  AMU: "Air Macau",
 
   SIA: "Singapore Airlines",
+  TGW: "Scoot",
+  MAS: "Malaysia Airlines",
+  AXM: "AirAsia",
+  MXD: "Batik Air Malaysia",
   THA: "Thai Airways",
   PAL: "Philippine Airlines",
+  CEB: "Cebu Pacific",
   GIA: "Garuda Indonesia",
-  MAS: "Malaysia Airlines",
   HVN: "Vietnam Airlines",
   VJC: "VietJet Air",
-  AXM: "AirAsia",
   RBA: "Royal Brunei Airlines",
 
   UAE: "Emirates",
   QTR: "Qatar Airways",
   ETD: "Etihad Airways",
+  SVA: "Saudia",
+  GFA: "Gulf Air",
+  OMA: "Oman Air",
+  KAC: "Kuwait Airways",
 
   UAL: "United Airlines",
   DAL: "Delta Air Lines",
   AAL: "American Airlines",
   ACA: "Air Canada",
   WJA: "WestJet",
+  ASA: "Alaska Airlines",
+  HAL: "Hawaiian Airlines",
 
-  UPS: "UPS Airlines",
   FDX: "FedEx Express",
+  UPS: "UPS Airlines",
   GTI: "Atlas Air",
   CLX: "Cargolux",
   NCA: "Nippon Cargo Airlines",
@@ -1353,12 +1333,26 @@ const AIRLINE_MAP = {
   FIN: "Finnair",
   SAS: "SAS",
   LOT: "LOT Polish Airlines",
+  SWR: "Swiss",
+  AUA: "Austrian Airlines",
+  ITY: "ITA Airways",
+  IBE: "Iberia",
+  THY: "Turkish Airlines",
+  VIR: "Virgin Atlantic",
 
   QFA: "Qantas",
   ANZ: "Air New Zealand",
 
   ETH: "Ethiopian Airlines",
-  MGL: "MIAT Mongolian Airlines"
+  SAA: "South African Airways",
+  MSR: "EgyptAir",
+
+  MGL: "MIAT Mongolian Airlines",
+  KZR: "Air Astana",
+  UZB: "Uzbekistan Airways",
+
+  AIC: "Air India",
+  IGO: "IndiGo"
 
 };
 
@@ -1391,13 +1385,21 @@ let activeSearchId =
   0;
 
 
-/*
- * 사용자가 직접 지도를 움직였는지
- */
-
 let userMovedMap =
   false;
 
+
+/*
+ * nearest-search에서 실제 표시 중인 airport
+ */
+
+let activeDisplayedAirport =
+  "";
+
+
+/************************************************************
+ * AIRPORT CACHE
+ ************************************************************/
 
 let airportDb =
   loadJsonStorage(
@@ -1423,27 +1425,18 @@ const map =
   L.map(
     "map",
     {
-
       zoomControl:
         false,
 
       preferCanvas:
         true,
 
-      /*
-       * 사용자가 pan 할 때 world copy가 강제로
-       * 재배치되는 느낌 방지
-       */
       worldCopyJump:
         false
-
     }
   )
   .setView(
-    [
-      36,
-      128
-    ],
+    [36,128],
     5
   );
 
@@ -1451,18 +1444,17 @@ const map =
 L.tileLayer(
   "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
   {
-
     maxZoom:
       15,
 
+    noWrap:
+      false,
+
     attribution:
       "&copy; OpenStreetMap &copy; CARTO"
-
   }
 )
-.addTo(
-  map
-);
+.addTo(map);
 
 
 L.control
@@ -1470,30 +1462,22 @@ L.control
     position:
       "bottomleft"
   })
-  .addTo(
-    map
-  );
+  .addTo(map);
 
 
 const resultLayer =
   L.featureGroup()
-    .addTo(
-      map
-    );
+    .addTo(map);
 
 
 const selectedLegLayer =
   L.featureGroup()
-    .addTo(
-      map
-    );
+    .addTo(map);
 
 
 const searchLayer =
   L.featureGroup()
-    .addTo(
-      map
-    );
+    .addTo(map);
 
 
 /************************************************************
@@ -1555,16 +1539,12 @@ document.addEventListener(
  * STORAGE
  ************************************************************/
 
-function loadJsonStorage(
-  key
-) {
+function loadJsonStorage(key) {
 
   try {
 
     const raw =
-      localStorage.getItem(
-        key
-      );
+      localStorage.getItem(key);
 
 
     if (!raw) {
@@ -1574,18 +1554,15 @@ function loadJsonStorage(
     }
 
 
-    const value =
-      JSON.parse(
-        raw
-      );
+    const obj =
+      JSON.parse(raw);
 
 
     return (
-      value &&
-      typeof value ===
-        "object"
+      obj &&
+      typeof obj === "object"
     )
-      ? value
+      ? obj
       : {};
 
   } catch (e) {
@@ -1615,20 +1592,14 @@ function setToday() {
     String(
       d.getMonth() + 1
     )
-      .padStart(
-        2,
-        "0"
-      );
+    .padStart(2,"0");
 
 
   const dd =
     String(
       d.getDate()
     )
-      .padStart(
-        2,
-        "0"
-      );
+    .padStart(2,"0");
 
 
   document
@@ -1777,9 +1748,7 @@ function bindEvents() {
     function(id) {
 
       document
-        .getElementById(
-          id
-        )
+        .getElementById(id)
         .addEventListener(
           "input",
           function() {
@@ -1809,45 +1778,36 @@ function bindEvents() {
  * MODE
  ************************************************************/
 
-function setDirection(
-  mode
-) {
+function setDirection(mode) {
 
   direction =
-    mode ===
-    "arr"
+    mode === "arr"
       ? "arr"
       : "dep";
 
 
   document
-    .getElementById(
-      "arrBtn"
-    )
+    .getElementById("arrBtn")
     .classList
     .toggle(
       "active",
-      direction ===
-        "arr"
+      direction === "arr"
     );
 
 
   document
-    .getElementById(
-      "depBtn"
-    )
+    .getElementById("depBtn")
     .classList
     .toggle(
       "active",
-      direction ===
-        "dep"
+      direction === "dep"
     );
 
 }
 
 
 /************************************************************
- * KML
+ * KML REFRESH
  ************************************************************/
 
 async function refreshAirportKml() {
@@ -1883,9 +1843,7 @@ async function refreshAirportKml() {
 
 
   if (
-    Object.keys(
-      db
-    ).length
+    Object.keys(db).length
   ) {
 
     airportDb =
@@ -1896,9 +1854,7 @@ async function refreshAirportKml() {
 
       localStorage.setItem(
         KML_STORAGE_KEY,
-        JSON.stringify(
-          db
-        )
+        JSON.stringify(db)
       );
 
     } catch (e) {}
@@ -1909,26 +1865,20 @@ async function refreshAirportKml() {
 
 
 /************************************************************
- * KML → AIRPORT
+ * KML PARSER
  ************************************************************/
 
-function buildAirportDbFromKml(
-  text
-) {
-
-  const parser =
-    new DOMParser();
-
+function buildAirportDbFromKml(text) {
 
   const xml =
-    parser.parseFromString(
-      text,
-      "application/xml"
-    );
+    new DOMParser()
+      .parseFromString(
+        text,
+        "application/xml"
+      );
 
 
-  const result =
-    {};
+  const result = {};
 
 
   const placemarks =
@@ -1949,7 +1899,9 @@ function buildAirportDbFromKml(
 
 
       if (!point) {
+
         return;
+
       }
 
 
@@ -1960,7 +1912,9 @@ function buildAirportDbFromKml(
 
 
       if (!coord) {
+
         return;
+
       }
 
 
@@ -1988,7 +1942,9 @@ function buildAirportDbFromKml(
 
 
       if (!match) {
+
         return;
+
       }
 
 
@@ -1996,22 +1952,23 @@ function buildAirportDbFromKml(
         match[0];
 
 
-      const firstCoord =
+      const parts =
         String(
           coord.textContent ||
           ""
         )
-          .trim()
-          .split(
-            /\s+/
-          )[0];
+        .trim()
+        .split(/\s+/)[0]
+        .split(",");
 
 
-      const parts =
-        firstCoord
-          .split(
-            ","
-          );
+      if (
+        parts.length < 2
+      ) {
+
+        return;
+
+      }
 
 
       const lon =
@@ -2027,12 +1984,8 @@ function buildAirportDbFromKml(
 
 
       if (
-        !Number.isFinite(
-          lat
-        ) ||
-        !Number.isFinite(
-          lon
-        )
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lon)
       ) {
 
         return;
@@ -2040,9 +1993,7 @@ function buildAirportDbFromKml(
       }
 
 
-      result[
-        code
-      ] = {
+      result[code] = {
 
         icao:
           code,
@@ -2054,8 +2005,7 @@ function buildAirportDbFromKml(
           lon,
 
         name:
-          rawName ||
-          code
+          rawName || code
 
       };
 
@@ -2072,9 +2022,7 @@ function buildAirportDbFromKml(
  * AIRPORT LOOKUP
  ************************************************************/
 
-async function getAirport(
-  code
-) {
+async function getAirport(code) {
 
   code =
     String(
@@ -2085,9 +2033,7 @@ async function getAirport(
 
 
   if (
-    !/^[A-Z]{4}$/.test(
-      code
-    )
+    !/^[A-Z]{4}$/.test(code)
   ) {
 
     return null;
@@ -2096,98 +2042,78 @@ async function getAirport(
 
 
   if (
-    airportDb[
-      code
-    ]
+    airportDb[code]
   ) {
 
-    return airportDb[
-      code
-    ];
+    return airportDb[code];
 
   }
 
 
   if (
-    fallbackAirportCache[
-      code
-    ]
+    fallbackAirportCache[code]
   ) {
 
-    return fallbackAirportCache[
-      code
-    ];
+    return fallbackAirportCache[code];
 
   }
 
 
   if (
-    airportPendingPromises[
-      code
-    ]
+    airportPendingPromises[code]
   ) {
 
-    return airportPendingPromises[
-      code
-    ];
+    return airportPendingPromises[code];
 
   }
 
 
-  airportPendingPromises[
-    code
-  ] =
-    geocodeAirport(
-      code
-    )
-    .then(
-      function(airport) {
+  airportPendingPromises[code] =
+    geocodeAirport(code)
+      .then(
+        function(airport) {
 
-        if (
-          airport
-        ) {
+          if (airport) {
 
-          fallbackAirportCache[
+            fallbackAirportCache[code] =
+              airport;
+
+
+            try {
+
+              localStorage.setItem(
+                FALLBACK_STORAGE_KEY,
+                JSON.stringify(
+                  fallbackAirportCache
+                )
+              );
+
+            } catch (e) {}
+
+          }
+
+
+          delete airportPendingPromises[
             code
-          ] =
-            airport;
+          ];
 
 
-          try {
-
-            localStorage.setItem(
-              FALLBACK_STORAGE_KEY,
-              JSON.stringify(
-                fallbackAirportCache
-              )
-            );
-
-          } catch (e) {}
+          return airport;
 
         }
+      )
+      .catch(
+        function() {
+
+          delete airportPendingPromises[
+            code
+          ];
 
 
-        delete airportPendingPromises[
-          code
-        ];
+          return null;
 
-
-        return airport;
-
-      }
-    )
-    .catch(
-      function() {
-
-        delete airportPendingPromises[
-          code
-        ];
-
-
-        return null;
-
-      }
-    );
+        }
+      );
 
 
   return airportPendingPromises[
@@ -2201,9 +2127,7 @@ async function getAirport(
  * NOMINATIM
  ************************************************************/
 
-async function geocodeAirport(
-  code
-) {
+async function geocodeAirport(code) {
 
   const url =
     "https://nominatim.openstreetmap.org/search" +
@@ -2217,19 +2141,7 @@ async function geocodeAirport(
 
 
   const res =
-    await fetch(
-      url,
-      {
-
-        headers: {
-
-          Accept:
-            "application/json"
-
-        }
-
-      }
-    );
+    await fetch(url);
 
 
   if (!res.ok) {
@@ -2244,9 +2156,7 @@ async function geocodeAirport(
 
 
   if (
-    !Array.isArray(
-      data
-    ) ||
+    !Array.isArray(data) ||
     !data.length
   ) {
 
@@ -2255,29 +2165,21 @@ async function geocodeAirport(
   }
 
 
-  const item =
-    data[0];
-
-
   const lat =
     Number(
-      item.lat
+      data[0].lat
     );
 
 
   const lon =
     Number(
-      item.lon
+      data[0].lon
     );
 
 
   if (
-    !Number.isFinite(
-      lat
-    ) ||
-    !Number.isFinite(
-      lon
-    )
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lon)
   ) {
 
     return null;
@@ -2297,7 +2199,7 @@ async function geocodeAirport(
       lon,
 
     name:
-      item.display_name ||
+      data[0].display_name ||
       code
 
   };
@@ -2306,7 +2208,195 @@ async function geocodeAirport(
 
 
 /************************************************************
- * LONGITUDE UNWRAP
+ * DISTANCE
+ *
+ * Haversine km
+ ************************************************************/
+
+function distanceKm(
+  lat1,
+  lon1,
+  lat2,
+  lon2
+) {
+
+  const R =
+    6371;
+
+
+  const toRad =
+    function(v) {
+
+      return v *
+        Math.PI /
+        180;
+
+    };
+
+
+  const dLat =
+    toRad(
+      lat2 -
+      lat1
+    );
+
+
+  const dLon =
+    toRad(
+      lon2 -
+      lon1
+    );
+
+
+  const a =
+    Math.sin(
+      dLat / 2
+    ) ** 2 +
+
+    Math.cos(
+      toRad(lat1)
+    ) *
+
+    Math.cos(
+      toRad(lat2)
+    ) *
+
+    Math.sin(
+      dLon / 2
+    ) ** 2;
+
+
+  const c =
+    2 *
+    Math.atan2(
+      Math.sqrt(a),
+      Math.sqrt(
+        1 - a
+      )
+    );
+
+
+  return R * c;
+
+}
+
+
+/************************************************************
+ * NEAREST AIRPORT CANDIDATES
+ ************************************************************/
+
+function getNearestAirportCandidates(
+  originCode,
+  originAirport
+) {
+
+  const list = [];
+
+
+  const combined =
+    Object.assign(
+      {},
+      fallbackAirportCache,
+      airportDb
+    );
+
+
+  Object.keys(
+    combined
+  )
+  .forEach(
+    function(code) {
+
+      if (
+        code ===
+        originCode
+      ) {
+
+        return;
+
+      }
+
+
+      const airport =
+        combined[code];
+
+
+      if (
+        !airport ||
+        !Number.isFinite(
+          Number(airport.lat)
+        ) ||
+        !Number.isFinite(
+          Number(airport.lon)
+        )
+      ) {
+
+        return;
+
+      }
+
+
+      const km =
+        distanceKm(
+
+          Number(
+            originAirport.lat
+          ),
+
+          Number(
+            originAirport.lon
+          ),
+
+          Number(
+            airport.lat
+          ),
+
+          Number(
+            airport.lon
+          )
+
+        );
+
+
+      list.push({
+
+        code:
+          code,
+
+        airport:
+          airport,
+
+        distanceKm:
+          km
+
+      });
+
+    }
+  );
+
+
+  list.sort(
+    function(a,b) {
+
+      return (
+        a.distanceKm -
+        b.distanceKm
+      );
+
+    }
+  );
+
+
+  return list.slice(
+    0,
+    NEAREST_CANDIDATE_LIMIT
+  );
+
+}
+
+
+/************************************************************
+ * LONGITUDE
  ************************************************************/
 
 function normalizeLonNearReference(
@@ -2315,29 +2405,11 @@ function normalizeLonNearReference(
 ) {
 
   lon =
-    Number(
-      lon
-    );
+    Number(lon);
 
 
   referenceLon =
-    Number(
-      referenceLon
-    );
-
-
-  if (
-    !Number.isFinite(
-      lon
-    ) ||
-    !Number.isFinite(
-      referenceLon
-    )
-  ) {
-
-    return lon;
-
-  }
+    Number(referenceLon);
 
 
   while (
@@ -2367,21 +2439,10 @@ function normalizeLonNearReference(
 }
 
 
-/************************************************************
- * RENDER LATLNG
- ************************************************************/
-
 function getRenderLatLng(
   airport,
   referenceLon
 ) {
-
-  if (!airport) {
-
-    return null;
-
-  }
-
 
   return [
 
@@ -2417,7 +2478,7 @@ function getQueryAirportCode() {
 
 
 /************************************************************
- * AIRLINE NAME
+ * AIRLINE
  ************************************************************/
 
 function getAirlineName(
@@ -2441,15 +2502,18 @@ function getAirlineName(
   }
 
 
-  return AIRLINE_MAP[
-    match[0]
-  ] || "";
+  return (
+    AIRLINE_MAP[
+      match[0]
+    ] ||
+    ""
+  );
 
 }
 
 
 /************************************************************
- * COUNTRY GROUP
+ * REGION
  ************************************************************/
 
 function getCountryGroupByIcao(
@@ -2471,14 +2535,8 @@ function getCountryGroupByIcao(
   }
 
 
-  /*
-   * KOREA
-   */
-
   if (
-    /^RK/.test(
-      code
-    )
+    /^RK/.test(code)
   ) {
 
     return "Korea";
@@ -2486,14 +2544,8 @@ function getCountryGroupByIcao(
   }
 
 
-  /*
-   * JAPAN
-   */
-
   if (
-    /^(RJ|RO)/.test(
-      code
-    )
+    /^(RJ|RO)/.test(code)
   ) {
 
     return "Japan";
@@ -2501,14 +2553,8 @@ function getCountryGroupByIcao(
   }
 
 
-  /*
-   * TAIWAN
-   */
-
   if (
-    /^RC/.test(
-      code
-    )
+    /^RC/.test(code)
   ) {
 
     return "Taiwan";
@@ -2516,14 +2562,8 @@ function getCountryGroupByIcao(
   }
 
 
-  /*
-   * HONG KONG / MACAU
-   */
-
   if (
-    /^(VH|VM)/.test(
-      code
-    )
+    /^(VH|VM)/.test(code)
   ) {
 
     return "Hong Kong / Macau";
@@ -2531,14 +2571,8 @@ function getCountryGroupByIcao(
   }
 
 
-  /*
-   * CHINA
-   */
-
   if (
-    /^Z/.test(
-      code
-    )
+    /^Z/.test(code)
   ) {
 
     return "China";
@@ -2546,14 +2580,8 @@ function getCountryGroupByIcao(
   }
 
 
-  /*
-   * USA
-   */
-
   if (
-    /^(K|PA|PF|PG|PH)/.test(
-      code
-    )
+    /^(K|PA|PF|PG|PH)/.test(code)
   ) {
 
     return "USA";
@@ -2561,14 +2589,8 @@ function getCountryGroupByIcao(
   }
 
 
-  /*
-   * CANADA
-   */
-
   if (
-    /^(CY|CZ)/.test(
-      code
-    )
+    /^(CY|CZ)/.test(code)
   ) {
 
     return "Canada";
@@ -2576,29 +2598,17 @@ function getCountryGroupByIcao(
   }
 
 
-  /*
-   * SOUTH AMERICA
-   */
-
   if (
-    /^(SA|SB|SC|SE|SG|SK|SL|SM|SO|SP|SU|SV|SW|SY)/.test(
-      code
-    )
+    /^(SA|SB|SC|SE|SG|SK|SL|SM|SO|SP|SU|SV|SW|SY)/.test(code)
   ) {
 
-    return "SouthAmerica";
+    return "South America";
 
   }
 
 
-  /*
-   * INDIA
-   */
-
   if (
-    /^(VA|VE|VI|VO)/.test(
-      code
-    )
+    /^(VA|VE|VI|VO)/.test(code)
   ) {
 
     return "India";
@@ -2607,41 +2617,29 @@ function getCountryGroupByIcao(
 
 
   /*
-   * SOUTHEAST ASIA
-   */
-
-if (
-  /^(RP|WB|WI|WM|WS|WA|VT|VV|VD|VL|VY)/.test(
-    code
-  )
-) {
-  return "SoutheastAsia";
-}
-
-
-  /*
-   * MIDDLE EAST
+   * Myanmar VY 포함
    */
 
   if (
-    /^(OB|OE|OI|OJ|OK|OL|OM|OO|OR|OS|OT)/.test(
-      code
-    )
+    /^(RP|WB|WI|WM|WS|WA|VT|VV|VD|VL|VY)/.test(code)
   ) {
 
-    return "MiddleEast";
+    return "Southeast Asia";
 
   }
 
 
-  /*
-   * OCEANIA
-   */
+  if (
+    /^(OB|OE|OI|OJ|OK|OL|OM|OO|OR|OS|OT)/.test(code)
+  ) {
+
+    return "Middle East";
+
+  }
+
 
   if (
-    /^(Y|NZ|NF|NG|NI|NL|NS|NT|NV|NW)/.test(
-      code
-    )
+    /^(Y|NZ|NF|NG|NI|NL|NS|NT|NV|NW)/.test(code)
   ) {
 
     return "Oceania";
@@ -2649,14 +2647,8 @@ if (
   }
 
 
-  /*
-   * EUROPE
-   */
-
   if (
-    /^(E[A-Z]|BI|BK|LA|LB|LC|LD|LE|LF|LG|LH|LI|LJ|LK|LL|LM|LN|LO|LP|LR|LS|LT|LU|LW|LX|LY|LZ)/.test(
-      code
-    )
+    /^(E[A-Z]|BI|BK|LA|LB|LC|LD|LE|LF|LG|LH|LI|LJ|LK|LL|LM|LN|LO|LP|LR|LS|LT|LU|LW|LX|LY|LZ)/.test(code)
   ) {
 
     return "Europe";
@@ -2664,14 +2656,8 @@ if (
   }
 
 
-  /*
-   * AFRICA
-   */
-
   if (
-    /^(DA|DB|DF|DG|DI|DN|DR|DT|DX|FA|FB|FC|FD|FE|FG|FH|FI|FJ|FK|FL|FM|FN|FO|FP|FQ|FS|FT|FV|FW|FX|FY|FZ|G[A-Z]|HA|HB|HC|HD|HE|HH|HK|HL|HR|HS|HT|HU)/.test(
-      code
-    )
+    /^(DA|DB|DF|DG|DI|DN|DR|DT|DX|FA|FB|FC|FD|FE|FG|FH|FI|FJ|FK|FL|FM|FN|FO|FP|FQ|FS|FT|FV|FW|FX|FY|FZ|G[A-Z]|HA|HB|HC|HD|HE|HH|HK|HL|HR|HS|HT|HU)/.test(code)
   ) {
 
     return "Africa";
@@ -2679,17 +2665,11 @@ if (
   }
 
 
-  /*
-   * CENTRAL ASIA / CIS
-   */
-
   if (
-    /^U/.test(
-      code
-    )
+    /^U/.test(code)
   ) {
 
-    return "CentralAsia";
+    return "Central Asia";
 
   }
 
@@ -2712,20 +2692,14 @@ function getCounterpartAirport(
 
     ? String(
         flight.arr || ""
-      )
-      .toUpperCase()
+      ).toUpperCase()
 
     : String(
         flight.dep || ""
-      )
-      .toUpperCase();
+      ).toUpperCase();
 
 }
 
-
-/************************************************************
- * COUNTRY GROUP
- ************************************************************/
 
 function getFlightCountryGroup(
   flight
@@ -2739,10 +2713,6 @@ function getFlightCountryGroup(
 
 }
 
-
-/************************************************************
- * COLOR
- ************************************************************/
 
 function getFlightCountryColor(
   flight
@@ -2760,6 +2730,45 @@ function getFlightCountryColor(
     ] ||
     COUNTRY_COLORS.Other
   );
+
+}
+
+
+/************************************************************
+ * NO FPL
+ ************************************************************/
+
+function isFplMissing(
+  flight
+) {
+
+  const fplYn =
+    String(
+      flight.fplYn || ""
+    )
+      .trim()
+      .toUpperCase();
+
+
+  if (
+    fplYn === "N"
+  ) {
+
+    return true;
+
+  }
+
+
+  if (
+    !flight.amsRecPk
+  ) {
+
+    return true;
+
+  }
+
+
+  return false;
 
 }
 
@@ -2799,15 +2808,142 @@ function getFlightUniqueKey(
     flight.schDate,
     flight.amsRecPk
 
-  ].join(
-    "|"
-  );
+  ].join("|");
 
 }
 
 
 /************************************************************
- * SEARCH
+ * FETCH FLIGHTS FOR AIRPORT
+ *
+ * UI 변경 없이 데이터만 가져오는 공용 함수
+ ************************************************************/
+
+async function fetchFlightsForAirport(
+  airport
+) {
+
+  const date =
+    document
+      .getElementById(
+        "dateInput"
+      )
+      .value;
+
+
+  const url =
+    APPS_SCRIPT_URL +
+
+    "?mode=flights" +
+
+    "&direction=" +
+    encodeURIComponent(
+      direction
+    ) +
+
+    "&date=" +
+    encodeURIComponent(
+      date
+    ) +
+
+    "&airport=" +
+    encodeURIComponent(
+      airport
+    );
+
+
+  const res =
+    await fetch(
+      url,
+      {
+        cache:
+          "no-store"
+      }
+    );
+
+
+  if (!res.ok) {
+
+    throw new Error(
+      "Backend HTTP " +
+      res.status
+    );
+
+  }
+
+
+  const data =
+    await res.json();
+
+
+  if (
+    data.status !==
+    "success"
+  ) {
+
+    throw new Error(
+      data.msg ||
+      "UBIKAIS 조회 실패"
+    );
+
+  }
+
+
+  const rows =
+    Array.isArray(
+      data.records
+    )
+      ? data.records
+      : [];
+
+
+  const seen =
+    new Set();
+
+
+  const records =
+    rows.filter(
+      function(flight) {
+
+        const key =
+          getFlightUniqueKey(
+            flight
+          );
+
+
+        if (
+          seen.has(key)
+        ) {
+
+          return false;
+
+        }
+
+
+        seen.add(key);
+
+
+        return true;
+
+      }
+    );
+
+
+  return {
+
+    airport:
+      airport,
+
+    records:
+      records
+
+  };
+
+}
+
+
+/************************************************************
+ * NORMAL MAIN SEARCH
  ************************************************************/
 
 async function searchFlights() {
@@ -2842,7 +2978,7 @@ async function searchFlights() {
   ) {
 
     alert(
-      "ICAO 4자리 코드를 입력하세요."
+      "ICAO 4자리 공항코드를 입력하세요."
     );
 
     return;
@@ -2850,15 +2986,18 @@ async function searchFlights() {
   }
 
 
-  /*
-   * 검색 시작 때만 자동 fit 허용
-   */
+  hideNearestNotice();
+
+
+  activeDisplayedAirport =
+    airport;
+
 
   userMovedMap =
     false;
 
 
-  const thisSearchId =
+  const searchId =
     ++activeSearchId;
 
 
@@ -2890,51 +3029,14 @@ async function searchFlights() {
 
   try {
 
-    getAirport(
-      airport
-    )
-    .catch(
-      function() {}
-    );
-
-
-    const url =
-      APPS_SCRIPT_URL +
-
-      "?mode=flights" +
-
-      "&direction=" +
-      encodeURIComponent(
-        direction
-      ) +
-
-      "&date=" +
-      encodeURIComponent(
-        date
-      ) +
-
-      "&airport=" +
-      encodeURIComponent(
+    const result =
+      await fetchFlightsForAirport(
         airport
       );
 
 
-    const res =
-      await fetch(
-        url,
-        {
-          cache:
-            "no-store"
-        }
-      );
-
-
-    const data =
-      await res.json();
-
-
     if (
-      thisSearchId !==
+      searchId !==
       activeSearchId
     ) {
 
@@ -2943,61 +3045,8 @@ async function searchFlights() {
     }
 
 
-    if (
-      data.status !==
-      "success"
-    ) {
-
-      throw new Error(
-        data.msg ||
-        "UBIKAIS 조회 실패"
-      );
-
-    }
-
-
-    const rows =
-      Array.isArray(
-        data.records
-      )
-        ? data.records
-        : [];
-
-
-    const seen =
-      new Set();
-
-
     allFlights =
-      rows.filter(
-        function(f) {
-
-          const key =
-            getFlightUniqueKey(
-              f
-            );
-
-
-          if (
-            seen.has(
-              key
-            )
-          ) {
-
-            return false;
-
-          }
-
-
-          seen.add(
-            key
-          );
-
-
-          return true;
-
-        }
-      );
+      result.records;
 
 
     visibleFlights =
@@ -3008,7 +3057,8 @@ async function searchFlights() {
 
 
     renderResultAirportsFast(
-      thisSearchId
+      searchId,
+      airport
     )
     .catch(
       console.error
@@ -3016,11 +3066,6 @@ async function searchFlights() {
 
 
   } catch (err) {
-
-    console.error(
-      err
-    );
-
 
     document
       .getElementById(
@@ -3036,7 +3081,7 @@ async function searchFlights() {
   } finally {
 
     if (
-      thisSearchId ===
+      searchId ===
       activeSearchId
     ) {
 
@@ -3050,6 +3095,721 @@ async function searchFlights() {
     }
 
   }
+
+}
+
+
+/************************************************************
+ * MAP AIRPORT SEARCH
+ *
+ * 1) 해당 공항으로 지도 이동
+ * 2) 그 공항 flights 조회
+ * 3) 0건이면 nearest ATS airport 자동 탐색
+ ************************************************************/
+
+async function searchAirportOnMap() {
+
+  const searchedCode =
+    document
+      .getElementById(
+        "mapAirportInput"
+      )
+      .value
+      .trim()
+      .toUpperCase();
+
+
+  const date =
+    document
+      .getElementById(
+        "dateInput"
+      )
+      .value;
+
+
+  if (!date) {
+
+    alert(
+      "날짜를 선택하세요."
+    );
+
+    return;
+
+  }
+
+
+  if (
+    !/^[A-Z]{4}$/.test(
+      searchedCode
+    )
+  ) {
+
+    alert(
+      "ICAO 4자리 코드를 입력하세요."
+    );
+
+    return;
+
+  }
+
+
+  const btn =
+    document
+      .getElementById(
+        "mapAirportBtn"
+      );
+
+
+  btn.disabled =
+    true;
+
+
+  btn.textContent =
+    "...";
+
+
+  hideNearestNotice();
+
+
+  const searchId =
+    ++activeSearchId;
+
+
+  try {
+
+    /********************************************************
+     * SEARCHED AIRPORT COORDINATE
+     ********************************************************/
+
+    const searchedAirport =
+      await getAirport(
+        searchedCode
+      );
+
+
+    if (!searchedAirport) {
+
+      throw new Error(
+        searchedCode +
+        " 공항 좌표를 찾을 수 없습니다."
+      );
+
+    }
+
+
+    /********************************************************
+     * 지도 먼저 searched airport로 이동
+     ********************************************************/
+
+    searchLayer
+      .clearLayers();
+
+
+    const searchedGroup =
+      getCountryGroupByIcao(
+        searchedCode
+      );
+
+
+    const searchedColor =
+      COUNTRY_COLORS[
+        searchedGroup
+      ] ||
+      COUNTRY_COLORS.Other;
+
+
+    const searchedLatLng =
+      getRenderLatLng(
+        searchedAirport,
+        map.getCenter().lng
+      );
+
+
+    const searchedMarker =
+      L.marker(
+        searchedLatLng,
+        {
+          icon:
+            makeAirportIcon(
+              searchedColor,
+              0,
+              36
+            )
+        }
+      );
+
+
+    searchedMarker
+      .bindTooltip(
+        searchedCode,
+        {
+          permanent:
+            true,
+
+          direction:
+            "bottom",
+
+          offset:
+            [0,13],
+
+          className:
+            "airport-label"
+        }
+      )
+      .addTo(
+        searchLayer
+      );
+
+
+    map.flyTo(
+      searchedLatLng,
+      8,
+      {
+        duration:
+          .65
+      }
+    );
+
+
+    /********************************************************
+     * FIRST: searched airport 자체 조회
+     ********************************************************/
+
+    showNearestNotice(
+      "Checking ATS PLAN for " +
+      searchedCode +
+      "..."
+    );
+
+
+    const ownResult =
+      await fetchFlightsForAirport(
+        searchedCode
+      );
+
+
+    if (
+      searchId !==
+      activeSearchId
+    ) {
+
+      return;
+
+    }
+
+
+    /********************************************************
+     * 자체 airport에 데이터 있음
+     ********************************************************/
+
+    if (
+      ownResult.records.length >
+      0
+    ) {
+
+      activeDisplayedAirport =
+        searchedCode;
+
+
+      document
+        .getElementById(
+          "airportInput"
+        )
+        .value =
+          searchedCode;
+
+
+      allFlights =
+        ownResult.records;
+
+
+      visibleFlights =
+        allFlights.slice();
+
+
+      selectedFlight =
+        null;
+
+
+      airportFilter =
+        "";
+
+
+      resultLayer
+        .clearLayers();
+
+
+      selectedLegLayer
+        .clearLayers();
+
+
+      closeDetail();
+
+
+      renderFlightList();
+
+
+      showNearestNotice(
+        "Showing ATS PLAN for " +
+        searchedCode
+      );
+
+
+      renderResultAirportsFast(
+        searchId,
+        searchedCode
+      )
+      .catch(
+        console.error
+      );
+
+
+      return;
+
+    }
+
+
+    /********************************************************
+     * 자체 airport 데이터 없음
+     ********************************************************/
+
+    showNearestNotice(
+      "No ATS PLAN for " +
+      searchedCode +
+      ". Searching nearest airport..."
+    );
+
+
+    /********************************************************
+     * 가까운 공항 후보
+     ********************************************************/
+
+    const candidates =
+      getNearestAirportCandidates(
+        searchedCode,
+        searchedAirport
+      );
+
+
+    if (
+      !candidates.length
+    ) {
+
+      throw new Error(
+        "가까운 공항 후보를 찾을 수 없습니다."
+      );
+
+    }
+
+
+    let found =
+      null;
+
+
+    /********************************************************
+     * 4개씩 병렬 조회
+     *
+     * 각 batch 안에서 가장 가까운 순서를 유지해서
+     * 데이터가 있는 가장 가까운 공항 선택
+     ********************************************************/
+
+    for (
+      let i = 0;
+      i < candidates.length;
+      i += NEAREST_BATCH_SIZE
+    ) {
+
+      const batch =
+        candidates.slice(
+          i,
+          i +
+          NEAREST_BATCH_SIZE
+        );
+
+
+      showNearestNotice(
+
+        "No ATS PLAN for " +
+        searchedCode +
+        ". Checking nearby airports..."
+
+      );
+
+
+      const results =
+        await Promise.allSettled(
+          batch.map(
+            function(item) {
+
+              return fetchFlightsForAirport(
+                item.code
+              );
+
+            }
+          )
+        );
+
+
+      if (
+        searchId !==
+        activeSearchId
+      ) {
+
+        return;
+
+      }
+
+
+      /********************************************************
+       * batch는 거리순.
+       * 첫 번째 데이터 보유 공항 선택.
+       ********************************************************/
+
+      for (
+        let j = 0;
+        j < batch.length;
+        j++
+      ) {
+
+        const result =
+          results[j];
+
+
+        if (
+          result.status ===
+            "fulfilled" &&
+          result.value &&
+          Array.isArray(
+            result.value.records
+          ) &&
+          result.value.records.length >
+            0
+        ) {
+
+          found = {
+
+            code:
+              batch[j].code,
+
+            airport:
+              batch[j].airport,
+
+            distanceKm:
+              batch[j].distanceKm,
+
+            records:
+              result.value.records
+
+          };
+
+
+          break;
+
+        }
+
+      }
+
+
+      if (found) {
+
+        break;
+
+      }
+
+    }
+
+
+    /********************************************************
+     * 주변에도 데이터 없음
+     ********************************************************/
+
+    if (!found) {
+
+      activeDisplayedAirport =
+        searchedCode;
+
+
+      allFlights =
+        [];
+
+
+      visibleFlights =
+        [];
+
+
+      resultLayer
+        .clearLayers();
+
+
+      selectedLegLayer
+        .clearLayers();
+
+
+      renderFlightList();
+
+
+      showNearestNotice(
+        "No ATS PLAN found for " +
+        searchedCode +
+        " or nearby airports."
+      );
+
+
+      return;
+
+    }
+
+
+    /********************************************************
+     * FOUND NEAREST
+     ********************************************************/
+
+    activeDisplayedAirport =
+      found.code;
+
+
+    /*
+     * 왼쪽 메인 ICAO input도 실제 표시공항으로 변경.
+     *
+     * 예: MMTO 검색 → MMMX 표시
+     */
+
+    document
+      .getElementById(
+        "airportInput"
+      )
+      .value =
+        found.code;
+
+
+    allFlights =
+      found.records;
+
+
+    visibleFlights =
+      allFlights.slice();
+
+
+    selectedFlight =
+      null;
+
+
+    airportFilter =
+      "";
+
+
+    resultLayer
+      .clearLayers();
+
+
+    selectedLegLayer
+      .clearLayers();
+
+
+    closeDetail();
+
+
+    renderFlightList();
+
+
+    showNearestNotice(
+
+      "Searched " +
+      searchedCode +
+      " → Showing nearest ATS airport " +
+      found.code +
+      " (" +
+      Math.round(
+        found.distanceKm
+      ) +
+      " km)"
+
+    );
+
+
+    /********************************************************
+     * nearest airport marker도 지도에 추가
+     ********************************************************/
+
+    const nearestGroup =
+      getCountryGroupByIcao(
+        found.code
+      );
+
+
+    const nearestColor =
+      COUNTRY_COLORS[
+        nearestGroup
+      ] ||
+      COUNTRY_COLORS.Other;
+
+
+    const nearestLatLng =
+      getRenderLatLng(
+        found.airport,
+        searchedAirport.lon
+      );
+
+
+    const nearestMarker =
+      L.marker(
+        nearestLatLng,
+        {
+          icon:
+            makeAirportIcon(
+              nearestColor,
+              0,
+              35
+            )
+        }
+      );
+
+
+    nearestMarker
+      .bindTooltip(
+        found.code,
+        {
+          permanent:
+            true,
+
+          direction:
+            "bottom",
+
+          offset:
+            [0,12],
+
+          className:
+            "airport-label"
+        }
+      )
+      .addTo(
+        searchLayer
+      );
+
+
+    /*
+     * searched airport + nearest airport 모두 보이게
+     */
+
+    const bounds =
+      L.latLngBounds(
+        [
+          searchedLatLng,
+          nearestLatLng
+        ]
+      );
+
+
+    map.fitBounds(
+      bounds,
+      {
+        paddingTopLeft:
+          [
+            window.innerWidth > 767
+              ? 420
+              : 30,
+            80
+          ],
+
+        paddingBottomRight:
+          [
+            90,
+            80
+          ],
+
+        maxZoom:
+          9
+      }
+    );
+
+
+    renderResultAirportsFast(
+      searchId,
+      found.code
+    )
+    .catch(
+      console.error
+    );
+
+
+  } catch (err) {
+
+    console.error(
+      err
+    );
+
+
+    showNearestNotice(
+      "ERROR: " +
+      err.message
+    );
+
+
+  } finally {
+
+    if (
+      searchId ===
+      activeSearchId
+    ) {
+
+      btn.disabled =
+        false;
+
+
+      btn.textContent =
+        "AIRPORT";
+
+    }
+
+  }
+
+}
+
+
+/************************************************************
+ * NEAREST NOTICE
+ ************************************************************/
+
+function showNearestNotice(
+  text
+) {
+
+  const box =
+    document
+      .getElementById(
+        "nearestNotice"
+      );
+
+
+  box.textContent =
+    text;
+
+
+  box.classList
+    .add(
+      "visible"
+    );
+
+}
+
+
+function hideNearestNotice() {
+
+  const box =
+    document
+      .getElementById(
+        "nearestNotice"
+      );
+
+
+  box.textContent =
+    "";
+
+
+  box.classList
+    .remove(
+      "visible"
+    );
 
 }
 
@@ -3150,7 +3910,7 @@ function renderFlightList() {
         );
 
 
-      const countryGroup =
+      const group =
         getFlightCountryGroup(
           flight
         );
@@ -3158,6 +3918,12 @@ function renderFlightList() {
 
       const color =
         getFlightCountryColor(
+          flight
+        );
+
+
+      const noFpl =
+        isFplMissing(
           flight
         );
 
@@ -3188,8 +3954,7 @@ function renderFlightList() {
         )
       ) {
 
-        item
-          .classList
+        item.classList
           .add(
             "active"
           );
@@ -3243,17 +4008,32 @@ function renderFlightList() {
           "
         >
 
-          ${escapeHtml(
-            flight.dep ||
-            "-"
-          )}
+          <span>
 
-          →
+            ${escapeHtml(
+              flight.dep ||
+              "-"
+            )}
 
-          ${escapeHtml(
-            flight.arr ||
-            "-"
-          )}
+            →
+
+            ${escapeHtml(
+              flight.arr ||
+              "-"
+            )}
+
+          </span>
+
+
+          ${
+            noFpl
+              ? `
+                <span class="no-fpl-text">
+                  (No FPL filed yet)
+                </span>
+              `
+              : ""
+          }
 
         </div>
 
@@ -3275,11 +4055,17 @@ function renderFlightList() {
             class="country-chip"
             style="
               background:${color};
+              ${
+                group ===
+                  "Middle East"
+                    ? "color:#111827;"
+                    : ""
+              }
             "
           >
 
             ${escapeHtml(
-              countryGroup
+              group
             )}
 
           </div>
@@ -3315,8 +4101,7 @@ function renderFlightList() {
 
 function makeAirportFlightMap() {
 
-  const temp =
-    {};
+  const temp = {};
 
 
   allFlights.forEach(
@@ -3329,9 +4114,7 @@ function makeAirportFlightMap() {
               flight.dep,
               flight.arr
             ]
-            .filter(
-              Boolean
-            )
+            .filter(Boolean)
           )
         );
 
@@ -3339,24 +4122,22 @@ function makeAirportFlightMap() {
       codes.forEach(
         function(code) {
 
+          code =
+            String(code)
+              .toUpperCase();
+
+
           if (
-            !temp[
-              code
-            ]
+            !temp[code]
           ) {
 
-            temp[
-              code
-            ] =
+            temp[code] =
               new Map();
 
           }
 
 
-          temp[
-            code
-          ]
-          .set(
+          temp[code].set(
             getFlightUniqueKey(
               flight
             ),
@@ -3370,27 +4151,21 @@ function makeAirportFlightMap() {
   );
 
 
-  const result =
-    {};
+  const result = {};
 
 
-  Object.keys(
-    temp
-  )
-  .forEach(
-    function(code) {
+  Object.keys(temp)
+    .forEach(
+      function(code) {
 
-      result[
-        code
-      ] =
-        Array.from(
-          temp[
-            code
-          ].values()
-        );
+        result[code] =
+          Array.from(
+            temp[code]
+              .values()
+          );
 
-    }
-  );
+      }
+    );
 
 
   return result;
@@ -3399,11 +4174,12 @@ function makeAirportFlightMap() {
 
 
 /************************************************************
- * FAST MAP
+ * MAP RESULTS
  ************************************************************/
 
 async function renderResultAirportsFast(
-  searchId
+  searchId,
+  queryCodeOverride
 ) {
 
   resultLayer
@@ -3411,6 +4187,7 @@ async function renderResultAirportsFast(
 
 
   const queryCode =
+    queryCodeOverride ||
     getQueryAirportCode();
 
 
@@ -3448,32 +4225,23 @@ async function renderResultAirportsFast(
     );
 
 
-  const missing =
-    [];
+  const missing = [];
 
 
   codes.forEach(
     function(code) {
 
       const airport =
-        airportDb[
-          code
-        ] ||
-        fallbackAirportCache[
-          code
-        ];
+        airportDb[code] ||
+        fallbackAirportCache[code];
 
 
-      if (
-        airport
-      ) {
+      if (airport) {
 
         addResultAirportMarker(
           code,
           airport,
-          airportMap[
-            code
-          ],
+          airportMap[code],
           queryCode,
           referenceLon
         );
@@ -3490,21 +4258,10 @@ async function renderResultAirportsFast(
   );
 
 
-  /*
-   * 처음 한 번만 fit
-   */
-
   fitResultAirports(
     true
   );
 
-
-  /*
-   * Missing airports background
-   *
-   * 나중에 들어온 공항 때문에 지도 위치를
-   * 다시 강제로 움직이지 않는다.
-   */
 
   missing.forEach(
     async function(code) {
@@ -3529,9 +4286,7 @@ async function renderResultAirportsFast(
       addResultAirportMarker(
         code,
         airport,
-        airportMap[
-          code
-        ],
+        airportMap[code],
         queryCode,
         referenceLon
       );
@@ -3543,7 +4298,7 @@ async function renderResultAirportsFast(
 
 
 /************************************************************
- * ADD MARKER
+ * RESULT MARKER
  ************************************************************/
 
 function addResultAirportMarker(
@@ -3583,7 +4338,13 @@ function addResultAirportMarker(
   ) {
 
     color =
-      "#111827";
+      COUNTRY_COLORS[
+        getCountryGroupByIcao(
+          code
+        )
+      ] ||
+      "#111111";
+
 
     size =
       35;
@@ -3602,14 +4363,12 @@ function addResultAirportMarker(
     L.marker(
       latlng,
       {
-
         icon:
           makeAirportIcon(
             color,
             flights.length,
             size
           )
-
       }
     );
 
@@ -3617,7 +4376,6 @@ function addResultAirportMarker(
   marker.bindTooltip(
     code,
     {
-
       permanent:
         true,
 
@@ -3625,36 +4383,11 @@ function addResultAirportMarker(
         "bottom",
 
       offset:
-        [
-          0,
-          12
-        ],
+        [0,12],
 
       className:
         "airport-label"
-
     }
-  );
-
-
-  marker.bindPopup(
-
-    "<b>" +
-    escapeHtml(
-      code
-    ) +
-    "</b><br>" +
-
-    escapeHtml(
-      airport.name ||
-      code
-    ) +
-
-    "<br>" +
-
-    flights.length +
-    " Flight(s)"
-
   );
 
 
@@ -3687,17 +4420,10 @@ function makeAirportIcon(
   size
 ) {
 
-  size =
-    Number(
-      size || 30
-    );
-
-
   return L.divIcon({
 
     className:
       "",
-
 
     html:
       `
@@ -3715,7 +4441,6 @@ function makeAirportIcon(
           ✈
         </div>
 
-
         ${
           Number(count) > 0
             ? `
@@ -3730,19 +4455,11 @@ function makeAirportIcon(
 
       `,
 
-
     iconSize:
-      [
-        40,
-        40
-      ],
-
+      [40,40],
 
     iconAnchor:
-      [
-        20,
-        20
-      ]
+      [20,20]
 
   });
 
@@ -3758,12 +4475,12 @@ function filterByAirport(
 ) {
 
   const queryCode =
+    activeDisplayedAirport ||
     getQueryAirportCode();
 
 
   if (
-    code ===
-    queryCode
+    code === queryCode
   ) {
 
     clearAirportFilter();
@@ -3779,12 +4496,12 @@ function filterByAirport(
 
   visibleFlights =
     allFlights.filter(
-      function(flight) {
+      function(f) {
 
         return (
-          flight.dep ===
+          f.dep ===
             code ||
-          flight.arr ===
+          f.arr ===
             code
         );
 
@@ -3807,10 +4524,6 @@ function filterByAirport(
 
 }
 
-
-/************************************************************
- * CLEAR FILTER
- ************************************************************/
 
 function clearAirportFilter() {
 
@@ -3920,7 +4633,7 @@ function selectFlight(
 
 
 /************************************************************
- * DRAW LEG
+ * SELECTED LEG
  ************************************************************/
 
 async function drawSelectedLeg(
@@ -3931,10 +4644,9 @@ async function drawSelectedLeg(
     .clearLayers();
 
 
-  const results =
+  const airports =
     await Promise.all(
       [
-
         getAirport(
           flight.dep
         ),
@@ -3942,17 +4654,16 @@ async function drawSelectedLeg(
         getAirport(
           flight.arr
         )
-
       ]
     );
 
 
   const dep =
-    results[0];
+    airports[0];
 
 
   const arr =
-    results[1];
+    airports[1];
 
 
   if (
@@ -3965,9 +4676,14 @@ async function drawSelectedLeg(
   }
 
 
+  const queryCode =
+    activeDisplayedAirport ||
+    getQueryAirportCode();
+
+
   const query =
     await getAirport(
-      getQueryAirportCode()
+      queryCode
     );
 
 
@@ -4005,7 +4721,6 @@ async function drawSelectedLeg(
       arrLatLng
     ],
     {
-
       color:
         color,
 
@@ -4017,7 +4732,6 @@ async function drawSelectedLeg(
 
       dashArray:
         "9 7"
-
     }
   )
   .addTo(
@@ -4049,14 +4763,12 @@ async function drawSelectedLeg(
         L.marker(
           x.latlng,
           {
-
             icon:
               makeAirportIcon(
                 color,
                 0,
                 36
               )
-
           }
         );
 
@@ -4064,7 +4776,6 @@ async function drawSelectedLeg(
       marker.bindTooltip(
         x.code,
         {
-
           permanent:
             true,
 
@@ -4072,14 +4783,10 @@ async function drawSelectedLeg(
             "bottom",
 
           offset:
-            [
-              0,
-              13
-            ],
+            [0,13],
 
           className:
             "airport-label"
-
         }
       );
 
@@ -4092,53 +4799,36 @@ async function drawSelectedLeg(
   );
 
 
-  /*
-   * Flight를 직접 클릭한 경우에는
-   * 사용자가 명시적으로 선택했으므로 fitBounds 허용.
-   */
-
-  const bounds =
+  map.fitBounds(
     L.latLngBounds(
       [
         depLatLng,
         arrLatLng
       ]
-    );
-
-
-  map.fitBounds(
-    bounds,
+    ),
     {
-
       paddingTopLeft:
         [
-
           window.innerWidth >
             767
               ? 415
               : 25,
 
           70
-
         ],
-
 
       paddingBottomRight:
         [
-
           window.innerWidth >
             767
               ? 470
               : 25,
 
           70
-
         ],
-
 
       maxZoom:
         7
-
     }
   );
 
@@ -4228,24 +4918,22 @@ function openDetail(
 
 
   resetCopyButton(
-    document.getElementById(
-      "copyRouteBtn"
-    )
+    document
+      .getElementById(
+        "copyRouteBtn"
+      )
   );
 
 
   resetCopyButton(
-    document.getElementById(
-      "copyOriginalBtn"
-    )
+    document
+      .getElementById(
+        "copyOriginalBtn"
+      )
   );
 
 }
 
-
-/************************************************************
- * CLOSE DETAIL
- ************************************************************/
 
 function closeDetail() {
 
@@ -4262,7 +4950,7 @@ function closeDetail() {
 
 
 /************************************************************
- * FPL
+ * LOAD FPL
  ************************************************************/
 
 async function loadFpl(
@@ -4278,7 +4966,7 @@ async function loadFpl(
         "routeBox"
       )
       .textContent =
-        "ATS PLAN 없음";
+        "ATS PLAN not filed yet.";
 
 
     document
@@ -4286,7 +4974,7 @@ async function loadFpl(
         "originalBox"
       )
       .textContent =
-        "ATS PLAN 없음";
+        "ATS PLAN not filed yet.";
 
 
     return;
@@ -4317,6 +5005,16 @@ async function loadFpl(
       await fetch(
         url
       );
+
+
+    if (!res.ok) {
+
+      throw new Error(
+        "Backend HTTP " +
+        res.status
+      );
+
+    }
 
 
     const data =
@@ -4408,11 +5106,7 @@ async function copyToClipboard(
       .trim();
 
 
-  if (
-    !value ||
-    value ===
-      "ATS PLAN 조회 중..."
-  ) {
+  if (!value) {
 
     return;
 
@@ -4445,8 +5139,9 @@ async function copyToClipboard(
         value;
 
 
-      textarea.style.position =
-        "fixed";
+      textarea.style
+        .position =
+          "fixed";
 
 
       textarea.style.left =
@@ -4491,10 +5186,6 @@ async function copyToClipboard(
 }
 
 
-/************************************************************
- * COPY ROUTE
- ************************************************************/
-
 function copyRouteText() {
 
   copyToClipboard(
@@ -4514,10 +5205,6 @@ function copyRouteText() {
 
 }
 
-
-/************************************************************
- * COPY ORIGINAL
- ************************************************************/
 
 function copyOriginalText() {
 
@@ -4539,13 +5226,16 @@ function copyOriginalText() {
 }
 
 
-/************************************************************
- * COPY BUTTON
- ************************************************************/
-
 function showCopied(
   button
 ) {
+
+  if (!button) {
+
+    return;
+
+  }
+
 
   button.textContent =
     "COPIED";
@@ -4577,16 +5267,14 @@ function showCopied(
 }
 
 
-/************************************************************
- * RESET COPY
- ************************************************************/
-
 function resetCopyButton(
   button
 ) {
 
   if (!button) {
+
     return;
+
   }
 
 
@@ -4609,11 +5297,6 @@ function resetCopyButton(
 function fitResultAirports(
   force
 ) {
-
-  /*
-   * 사용자가 직접 지도 이동 후에는
-   * background 처리 때문에 지도가 다시 튀지 않음.
-   */
 
   if (
     !force &&
@@ -4653,174 +5336,23 @@ function fitResultAirports(
   map.fitBounds(
     bounds,
     {
-
       paddingTopLeft:
         [
-
           window.innerWidth >
             767
               ? 415
               : 25,
 
           60
-
         ],
-
 
       paddingBottomRight:
-        [
-          80,
-          60
-        ],
-
+        [80,60],
 
       maxZoom:
         5
-
     }
   );
-
-}
-
-
-/************************************************************
- * MAP AIRPORT SEARCH
- ************************************************************/
-
-async function searchAirportOnMap() {
-
-  const code =
-    document
-      .getElementById(
-        "mapAirportInput"
-      )
-      .value
-      .trim()
-      .toUpperCase();
-
-
-  if (
-    !/^[A-Z]{4}$/.test(
-      code
-    )
-  ) {
-
-    alert(
-      "ICAO 4자리 코드를 입력하세요."
-    );
-
-    return;
-
-  }
-
-
-  const airport =
-    await getAirport(
-      code
-    );
-
-
-  if (!airport) {
-
-    alert(
-      code +
-      " 공항을 찾을 수 없습니다."
-    );
-
-    return;
-
-  }
-
-
-  searchLayer
-    .clearLayers();
-
-
-  const referenceLon =
-    map.getCenter()
-      .lng;
-
-
-  const latlng =
-    getRenderLatLng(
-      airport,
-      referenceLon
-    );
-
-
-  const marker =
-    L.marker(
-      latlng,
-      {
-
-        icon:
-          makeAirportIcon(
-            "#7c3aed",
-            0,
-            35
-          )
-
-      }
-    );
-
-
-  marker.bindTooltip(
-    code,
-    {
-
-      permanent:
-        true,
-
-      direction:
-        "bottom",
-
-      offset:
-        [
-          0,
-          12
-        ],
-
-      className:
-        "airport-label"
-
-    }
-  );
-
-
-  marker.bindPopup(
-
-    "<b>" +
-    escapeHtml(
-      code
-    ) +
-    "</b><br>" +
-
-    escapeHtml(
-      airport.name ||
-      code
-    )
-
-  );
-
-
-  marker.addTo(
-    searchLayer
-  );
-
-
-  map.flyTo(
-    latlng,
-    8,
-    {
-
-      duration:
-        .7
-
-    }
-  );
-
-
-  marker.openPopup();
 
 }
 
@@ -4870,5 +5402,4 @@ function escapeHtml(
 </script>
 
 </body>
-
 </html>
