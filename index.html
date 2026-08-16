@@ -1214,6 +1214,38 @@ input {
 
     </div>
 
+
+    <div
+      id="changeSection"
+      class="section"
+      style="display:none;"
+    >
+
+      <div class="section-head">
+
+        <div class="section-title">
+          CHG MESSAGE
+        </div>
+
+
+        <button
+          id="copyChangeBtn"
+          class="copy-btn"
+          type="button"
+        >
+          COPY
+        </button>
+
+      </div>
+
+
+      <div
+        id="changeBox"
+        class="original-box"
+      ></div>
+
+    </div>
+
   </div>
 
 </div>
@@ -2060,6 +2092,14 @@ function bindEvents() {
 
   document
     .getElementById(
+      "copyChangeBtn"
+    )
+    .onclick =
+      copyChangeText;
+
+
+  document
+    .getElementById(
       "airportInput"
     )
     .addEventListener(
@@ -2307,12 +2347,35 @@ function buildAirportDbFromKml(
           : "";
 
 
-      const match =
+      let match =
         rawName
           .toUpperCase()
           .match(
             /\b[A-Z]{4}\b/
           );
+
+
+      /*
+       * Some KML Placemarks keep ICAO in description / ExtendedData
+       * rather than the <name> node. Search the full Placemark text
+       * before giving up.
+       */
+      if (!match) {
+
+        const placemarkText =
+          String(
+            pm.textContent ||
+            ""
+          )
+          .toUpperCase();
+
+        match =
+          placemarkText
+            .match(
+              /\b[A-Z]{4}\b/
+            );
+
+      }
 
 
       if (!match) {
@@ -3404,148 +3467,127 @@ function getFlightUniqueKey(
  * ATS PLAN BACKGROUND LEG CORRECTION
  ************************************************************/
 
-async function fetchFplDataByPk(amsRecPk) {
-  const pk = String(amsRecPk || "").trim();
+async function fetchFplDataForFlight(flight) {
+  if (!flight) return null;
+
+  const pk =
+    String(
+      flight.amsRecPk ||
+      ""
+    )
+    .trim();
+
   if (!pk) return null;
 
-  if (fplDataCache[pk]) return fplDataCache[pk];
-  if (pendingFplLookups[pk]) return pendingFplLookups[pk];
-
-  pendingFplLookups[pk] = (async function() {
-    try {
-      const url =
-        APPS_SCRIPT_URL +
-        "?mode=fpl" +
-        "&amsRecPk=" +
-        encodeURIComponent(pk);
-
-      const response = await fetch(url, { cache: "no-store" });
-      if (!response.ok) {
-        throw new Error("Backend HTTP " + response.status);
-      }
-
-      const data = await response.json();
-      if (!data || data.status !== "success") return null;
-
-      fplDataCache[pk] = data;
-      return data;
-
-    } catch (err) {
-      console.warn("ATS PLAN lookup failed:", pk, err);
-      return null;
-
-    } finally {
-      delete pendingFplLookups[pk];
-    }
-  })();
-
-  return pendingFplLookups[pk];
-}
-
-
-function applyAtsPlanIdentity(flight, data) {
-  if (!flight || !data) return false;
-
-  const atsDep = normalizeIcao(data.fplDep);
-  const atsArr = normalizeIcao(data.fplArr);
-  let changed = false;
-
-  if (atsDep && atsArr) {
-    if (!flight.listDep) flight.listDep = flight.dep || "";
-    if (!flight.listArr) flight.listArr = flight.arr || "";
-
-    if (
-      normalizeIcao(flight.dep) !== atsDep ||
-      normalizeIcao(flight.arr) !== atsArr
-    ) {
-      changed = true;
-    }
-
-    flight.dep = atsDep;
-    flight.arr = atsArr;
-    flight.legSource = "ATS";
-  }
-
-  const fplCallsign =
-    String(data.fplCallsign || "").trim().toUpperCase();
-
-  if (
-    fplCallsign &&
-    (
-      !flight.flight ||
-      /^HL\d{4}$/.test(String(flight.flight || "").toUpperCase())
+  const changePk =
+    String(
+      flight.amsRecPkCha ||
+      flight.changePk ||
+      ""
     )
-  ) {
-    flight.flight = fplCallsign;
-    changed = true;
+    .trim();
+
+  const hasChange =
+    String(
+      flight.chaYn ||
+      ""
+    )
+    .trim()
+    .toUpperCase() === "Y" &&
+    Boolean(changePk);
+
+  const cacheKey =
+    pk +
+    "|" +
+    (
+      hasChange
+        ? changePk
+        : ""
+    );
+
+  if (fplDataCache[cacheKey]) {
+    return fplDataCache[cacheKey];
   }
 
-  return changed;
-}
-
-
-function refreshVisibleFlightsAfterAts() {
-  if (airportFilter) {
-    visibleFlights = allFlights.filter(function(flight) {
-      return (
-        normalizeIcao(flight.dep) === airportFilter ||
-        normalizeIcao(flight.arr) === airportFilter
-      );
-    });
-  } else {
-    visibleFlights = allFlights.slice();
+  if (pendingFplLookups[cacheKey]) {
+    return pendingFplLookups[cacheKey];
   }
-}
 
+  pendingFplLookups[cacheKey] =
+    (async function() {
 
-async function enrichFlightsFromAtsPlan(searchId) {
-  const targets =
-    allFlights.filter(function(flight) {
-      return Boolean(flight && flight.amsRecPk);
-    });
+      try {
 
-  if (!targets.length) return;
+        let url =
+          APPS_SCRIPT_URL +
+          "?mode=fpl" +
+          "&amsRecPk=" +
+          encodeURIComponent(pk);
 
-  let cursor = 0;
-  let changedCount = 0;
-
-  async function worker() {
-    while (true) {
-      if (searchId !== activeSearchId) return;
-
-      const index = cursor++;
-      if (index >= targets.length) return;
-
-      const flight = targets[index];
-      const data = await fetchFplDataByPk(flight.amsRecPk);
-
-      if (searchId !== activeSearchId) return;
-
-      if (applyAtsPlanIdentity(flight, data)) {
-        changedCount++;
-
-        if (changedCount % 6 === 0) {
-          refreshVisibleFlightsAfterAts();
-          renderFlightList();
+        if (hasChange) {
+          url +=
+            "&chaYn=Y" +
+            "&amsRecPkCha=" +
+            encodeURIComponent(changePk);
         }
+
+        const response =
+          await fetch(
+            url,
+            {
+              cache:
+                "no-store"
+            }
+          );
+
+        if (!response.ok) {
+          throw new Error(
+            "Backend HTTP " +
+            response.status
+          );
+        }
+
+        const data =
+          await response.json();
+
+        if (
+          !data ||
+          data.status !==
+            "success"
+        ) {
+          return null;
+        }
+
+        fplDataCache[cacheKey] =
+          data;
+
+        return data;
+
+      } catch (err) {
+
+        console.warn(
+          "ATS PLAN lookup failed:",
+          cacheKey,
+          err
+        );
+
+        return null;
+
+      } finally {
+
+        delete pendingFplLookups[
+          cacheKey
+        ];
+
       }
-    }
-  }
 
-  const concurrency = Math.min(6, targets.length);
+    })();
 
-  await Promise.all(
-    Array.from({ length: concurrency }, worker)
-  );
-
-  if (searchId !== activeSearchId) return;
-
-  refreshVisibleFlightsAfterAts();
-  renderFlightList();
-
-  // ATS Item 13/16 기준으로 마커, 국가, badge도 다시 구성
-  renderResultAirportsFast(searchId);
+  return pendingFplLookups[
+    cacheKey
+  ];
 }
+
 
 /************************************************************
  * UBIKAIS SEARCH
@@ -4653,18 +4695,24 @@ async function resolveAirportForManualSearch(code) {
   code = normalizeIcao(code);
   if (!code) return null;
 
+  /********************************************************
+   * 1) Current KML DB / permanent local cache
+   ********************************************************/
   let local = getAirportLocalOnly(code);
   if (isValidAirportCoordinate(local)) return local;
 
-  /*
-   * Empty/stale local KML only:
-   * try one quick KML refresh, but never wait indefinitely.
-   */
+
+  /********************************************************
+   * 2) One quick KML refresh
+   *
+   * Never wait indefinitely, but give the KML parser a chance
+   * to populate a previously empty/stale browser cache.
+   ********************************************************/
   try {
     await Promise.race([
       refreshAirportKml(),
       new Promise(function(resolve) {
-        setTimeout(resolve, 1200);
+        setTimeout(resolve, 1500);
       })
     ]);
   } catch (_) {}
@@ -4672,7 +4720,59 @@ async function resolveAirportForManualSearch(code) {
   local = getAirportLocalOnly(code);
   if (isValidAirportCoordinate(local)) return local;
 
-  return await geocodeAirportByBackendFallback(code);
+
+  /********************************************************
+   * 3) Browser Airport-Data
+   *
+   * This is independent of ATS/FPL/CHG.
+   * If browser CORS blocks it, silently continue to backend.
+   ********************************************************/
+  try {
+    const airportData =
+      await lookupAirportDataApi(
+        code
+      );
+
+    if (
+      isValidAirportCoordinate(
+        airportData
+      )
+    ) {
+
+      saveAirportToPermanentCache(
+        airportData
+      );
+
+      return airportData;
+
+    }
+  } catch (_) {}
+
+
+  /********************************************************
+   * 4) Apps Script fallback
+   *    server cache -> Airport-Data -> Nominatim
+   ********************************************************/
+  const backendAirport =
+    await geocodeAirportByBackendFallback(
+      code
+    );
+
+  if (
+    isValidAirportCoordinate(
+      backendAirport
+    )
+  ) {
+
+    saveAirportToPermanentCache(
+      backendAirport
+    );
+
+    return backendAirport;
+
+  }
+
+  return null;
 }
 
 
@@ -5321,6 +5421,22 @@ function openDetail(
       "ATS PLAN 조회 중...";
 
 
+  document
+    .getElementById(
+      "changeSection"
+    )
+    .style.display =
+      "none";
+
+
+  document
+    .getElementById(
+      "changeBox"
+    )
+    .textContent =
+      "";
+
+
   resetCopyButton(
     document
       .getElementById(
@@ -5333,6 +5449,14 @@ function openDetail(
     document
       .getElementById(
         "copyOriginalBtn"
+      )
+  );
+
+
+  resetCopyButton(
+    document
+      .getElementById(
+        "copyChangeBtn"
       )
   );
 
@@ -5366,55 +5490,181 @@ async function loadFpl(
       "ATS PLAN not filed yet.";
     document.getElementById("originalBox").textContent =
       "ATS PLAN not filed yet.";
+    document.getElementById("changeSection").style.display =
+      "none";
+    document.getElementById("changeBox").textContent =
+      "";
     return;
   }
 
-  const requestedPk = String(flight.amsRecPk);
+  const requestedPk =
+    String(
+      flight.amsRecPk
+    );
 
   try {
-    const data = await fetchFplDataByPk(requestedPk);
+
+    const data =
+      await fetchFplDataForFlight(
+        flight
+      );
 
     if (
       !selectedFlight ||
-      String(selectedFlight.amsRecPk) !== requestedPk
+      String(
+        selectedFlight.amsRecPk
+      ) !==
+        requestedPk
     ) {
       return;
     }
 
     if (!data) {
-      throw new Error("ATS PLAN 조회 실패");
+      throw new Error(
+        "ATS PLAN 조회 실패"
+      );
     }
 
+
+    /*
+     * Backend already merged Original FPL + actual CHG.
+     * Therefore this identity is the effective current ATS LEG.
+     */
     const identityChanged =
-      applyAtsPlanIdentity(flight, data);
+      applyAtsPlanIdentity(
+        flight,
+        data
+      );
 
     if (identityChanged) {
+
       refreshVisibleFlightsAfterAts();
       renderFlightList();
 
-      document.getElementById("detailLeg").textContent =
-        (flight.dep || "-") +
-        " → " +
-        (flight.arr || "-");
+      document
+        .getElementById(
+          "detailLeg"
+        )
+        .textContent =
+          (
+            flight.dep ||
+            "-"
+          ) +
+          " → " +
+          (
+            flight.arr ||
+            "-"
+          );
 
-      drawSelectedLeg(flight);
+      drawSelectedLeg(
+        flight
+      );
+
+      /*
+       * Also re-render result airport counts in real time
+       * after the effective ATS/CHG identity is confirmed.
+       */
+      renderResultAirportsFast(
+        activeSearchId
+      );
+
     }
 
-    document.getElementById("routeBox").textContent =
-      data.route || "Route 없음";
 
-    document.getElementById("originalBox").textContent =
-      data.original || "ATS Original Message 없음";
+    document
+      .getElementById(
+        "routeBox"
+      )
+      .textContent =
+        data.route ||
+        "Route 없음";
+
+
+    document
+      .getElementById(
+        "originalBox"
+      )
+      .textContent =
+        data.original ||
+        "ATS Original Message 없음";
+
+
+    const changeSection =
+      document
+        .getElementById(
+          "changeSection"
+        );
+
+    const changeBox =
+      document
+        .getElementById(
+          "changeBox"
+        );
+
+
+    if (
+      data.hasChange &&
+      data.changeOriginal
+    ) {
+
+      changeSection.style.display =
+        "";
+
+      changeBox.textContent =
+        data.changeOriginal;
+
+    } else {
+
+      changeSection.style.display =
+        "none";
+
+      changeBox.textContent =
+        "";
+
+    }
 
   } catch (err) {
-    console.error(err);
 
-    document.getElementById("routeBox").textContent =
-      "ERROR: " + (err.message || String(err));
+    console.error(
+      err
+    );
 
-    document.getElementById("originalBox").textContent =
-      "ATS PLAN 조회 실패";
+    document
+      .getElementById(
+        "routeBox"
+      )
+      .textContent =
+        "ERROR: " +
+        (
+          err.message ||
+          String(
+            err
+          )
+        );
+
+    document
+      .getElementById(
+        "originalBox"
+      )
+      .textContent =
+        "ATS PLAN 조회 실패";
+
+    document
+      .getElementById(
+        "changeSection"
+      )
+      .style.display =
+        "none";
+
+    document
+      .getElementById(
+        "changeBox"
+      )
+      .textContent =
+        "";
+
   }
+
 }
 
 
@@ -5549,6 +5799,27 @@ function copyOriginalText() {
     document
       .getElementById(
         "copyOriginalBtn"
+      )
+
+  );
+
+}
+
+
+
+function copyChangeText() {
+
+  copyToClipboard(
+
+    document
+      .getElementById(
+        "changeBox"
+      )
+      .textContent,
+
+    document
+      .getElementById(
+        "copyChangeBtn"
       )
 
   );
