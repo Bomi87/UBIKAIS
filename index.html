@@ -2610,15 +2610,13 @@ function getCountryGroupByIcao(
    * SOUTHEAST ASIA
    */
 
-  if (
-    /^(RP|WB|WI|WM|WS|WA|VT|VV|VD|VL)/.test(
-      code
-    )
-  ) {
-
-    return "SoutheastAsia";
-
-  }
+if (
+  /^(RP|WB|WI|WM|WS|WA|VT|VV|VD|VL|VY)/.test(
+    code
+  )
+) {
+  return "SoutheastAsia";
+}
 
 
   /*
