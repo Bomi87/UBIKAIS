@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-
 <meta charset="utf-8">
 
 <meta
@@ -754,7 +753,8 @@ input {
   background:
     transparent !important;
 
-  border: 0 !important;
+  border:
+    0 !important;
 
   box-shadow:
     none !important;
@@ -877,6 +877,17 @@ input {
 }
 
 
+.search-popup-source {
+  margin-top: 6px;
+
+  color: #9ca3af;
+
+  font-size: 8px;
+
+  line-height: 1.2;
+}
+
+
 /************************************************************
  * MAP SEARCH
  ************************************************************/
@@ -937,6 +948,13 @@ input {
 }
 
 
+.map-search button:disabled {
+  background: #9ca3af;
+
+  cursor: not-allowed;
+}
+
+
 /************************************************************
  * MOBILE
  ************************************************************/
@@ -976,12 +994,10 @@ input {
 }
 
 </style>
-
 </head>
 
 
 <body>
-
 
 <div id="map"></div>
 
@@ -1191,7 +1207,7 @@ input {
 
 
 <!-- ======================================================
-     BOTTOM RIGHT SEARCH
+     BOTTOM RIGHT AIRPORT SEARCH
 ======================================================= -->
 
 <div class="map-search">
@@ -1223,7 +1239,7 @@ const APPS_SCRIPT_URL =
 
 
 /************************************************************
- * AIRPORT FILES
+ * LOCAL AIRPORT FILES
  ************************************************************/
 
 const NDB_KML_URL =
@@ -1235,15 +1251,46 @@ const AIRPORT_INFO_URL =
 
 
 /************************************************************
- * LOCAL STORAGE
+ * FALLBACK API
+ *
+ * OurAirports 전체 CSV를 직접 브라우저에서 읽는다.
+ *
+ * airport_info.json 또는 KML에 없는 공항도
+ * 여기서 ICAO / NAME / COUNTRY / LAT / LON 확보 가능.
+ *
+ * CSV:
+ * https://davidmegginson.github.io/ourairports-data/airports.csv
+ *
+ * Country:
+ * https://davidmegginson.github.io/ourairports-data/countries.csv
+ ************************************************************/
+
+const OURAIRPORTS_AIRPORTS_URL =
+  "https://davidmegginson.github.io/ourairports-data/airports.csv";
+
+
+const OURAIRPORTS_COUNTRIES_URL =
+  "https://davidmegginson.github.io/ourairports-data/countries.csv";
+
+
+/************************************************************
+ * STORAGE
  ************************************************************/
 
 const KML_STORAGE_KEY =
-  "UBIKAIS_AIRPORT_COORDS_V12";
+  "UBIKAIS_AIRPORT_COORDS_V13";
 
 
 const AIRPORT_INFO_STORAGE_KEY =
-  "UBIKAIS_AIRPORT_INFO_V12";
+  "UBIKAIS_AIRPORT_INFO_V13";
+
+
+const FALLBACK_AIRPORT_STORAGE_KEY =
+  "UBIKAIS_FALLBACK_AIRPORTS_V13";
+
+
+const COUNTRY_STORAGE_KEY =
+  "UBIKAIS_COUNTRIES_V13";
 
 
 /************************************************************
@@ -1445,7 +1492,7 @@ let userMovedMap =
 
 
 /************************************************************
- * DATABASE
+ * DATABASES
  ************************************************************/
 
 let airportDb =
@@ -1458,6 +1505,25 @@ let airportInfoDb =
   loadJsonStorage(
     AIRPORT_INFO_STORAGE_KEY
   );
+
+
+let fallbackAirportDb =
+  loadJsonStorage(
+    FALLBACK_AIRPORT_STORAGE_KEY
+  );
+
+
+let countryDb =
+  loadJsonStorage(
+    COUNTRY_STORAGE_KEY
+  );
+
+
+/*
+ * fallback 전체 CSV는 필요할 때만 다운로드.
+ */
+let ourAirportsLoadPromise =
+  null;
 
 
 /************************************************************
@@ -1532,21 +1598,27 @@ const searchLayer =
 
 
 /************************************************************
- * MAP MOVEMENT
+ * USER MAP MOVEMENT
  ************************************************************/
 
 map.on(
   "dragstart",
-  () => {
-    userMovedMap = true;
+  function() {
+
+    userMovedMap =
+      true;
+
   }
 );
 
 
 map.on(
   "zoomstart",
-  () => {
-    userMovedMap = true;
+  function() {
+
+    userMovedMap =
+      true;
+
   }
 );
 
@@ -1564,22 +1636,35 @@ document.addEventListener(
     bindEvents();
 
 
+    /*
+     * KML background refresh
+     */
     refreshAirportKml()
       .catch(
-        console.warn
+        function(err) {
+
+          console.warn(
+            "KML refresh failed:",
+            err
+          );
+
+        }
       );
 
 
     /*
-     * airport_info.json도 background load.
-     *
-     * 이미 localStorage에 있으면 즉시 사용하고
-     * 최신 JSON은 뒤에서 갱신.
+     * airport_info.json background refresh
      */
-
     refreshAirportInfo()
       .catch(
-        console.warn
+        function(err) {
+
+          console.warn(
+            "airport_info.json refresh failed:",
+            err
+          );
+
+        }
       );
 
   }
@@ -1617,16 +1702,511 @@ function loadJsonStorage(
 
     return (
       parsed &&
-      typeof parsed === "object"
+      typeof parsed ===
+        "object"
     )
       ? parsed
       : {};
 
-  } catch {
+  } catch (err) {
 
     return {};
 
   }
+
+}
+
+
+function saveJsonStorage(
+  key,
+  value
+) {
+
+  try {
+
+    localStorage.setItem(
+      key,
+      JSON.stringify(
+        value
+      )
+    );
+
+  } catch (err) {}
+
+}
+
+
+/************************************************************
+ * DATE
+ ************************************************************/
+
+function setToday() {
+
+  const d =
+    new Date();
+
+
+  const yyyy =
+    d.getFullYear();
+
+
+  const mm =
+    String(
+      d.getMonth() + 1
+    )
+      .padStart(
+        2,
+        "0"
+      );
+
+
+  const dd =
+    String(
+      d.getDate()
+    )
+      .padStart(
+        2,
+        "0"
+      );
+
+
+  document
+    .getElementById(
+      "dateInput"
+    )
+    .value =
+      yyyy +
+      "-" +
+      mm +
+      "-" +
+      dd;
+
+}
+
+
+/************************************************************
+ * EVENTS
+ ************************************************************/
+
+function bindEvents() {
+
+  document
+    .getElementById(
+      "arrBtn"
+    )
+    .onclick =
+      function() {
+
+        setDirection(
+          "arr"
+        );
+
+      };
+
+
+  document
+    .getElementById(
+      "depBtn"
+    )
+    .onclick =
+      function() {
+
+        setDirection(
+          "dep"
+        );
+
+      };
+
+
+  document
+    .getElementById(
+      "queryBtn"
+    )
+    .onclick =
+      searchFlights;
+
+
+  document
+    .getElementById(
+      "filterChip"
+    )
+    .onclick =
+      clearAirportFilter;
+
+
+  document
+    .getElementById(
+      "closeDetail"
+    )
+    .onclick =
+      closeDetail;
+
+
+  document
+    .getElementById(
+      "mapAirportBtn"
+    )
+    .onclick =
+      searchAirportOnMap;
+
+
+  document
+    .getElementById(
+      "copyRouteBtn"
+    )
+    .onclick =
+      copyRouteText;
+
+
+  document
+    .getElementById(
+      "copyOriginalBtn"
+    )
+    .onclick =
+      copyOriginalText;
+
+
+  document
+    .getElementById(
+      "airportInput"
+    )
+    .addEventListener(
+      "keydown",
+      function(e) {
+
+        if (
+          e.key ===
+          "Enter"
+        ) {
+
+          searchFlights();
+
+        }
+
+      }
+    );
+
+
+  document
+    .getElementById(
+      "mapAirportInput"
+    )
+    .addEventListener(
+      "keydown",
+      function(e) {
+
+        if (
+          e.key ===
+          "Enter"
+        ) {
+
+          searchAirportOnMap();
+
+        }
+
+      }
+    );
+
+
+  [
+    "airportInput",
+    "mapAirportInput"
+  ]
+  .forEach(
+    function(id) {
+
+      document
+        .getElementById(
+          id
+        )
+        .addEventListener(
+          "input",
+          function() {
+
+            this.value =
+              this.value
+                .toUpperCase()
+                .replace(
+                  /[^A-Z]/g,
+                  ""
+                )
+                .slice(
+                  0,
+                  4
+                );
+
+          }
+        );
+
+    }
+  );
+
+}
+
+
+/************************************************************
+ * MODE
+ ************************************************************/
+
+function setDirection(
+  mode
+) {
+
+  direction =
+    mode ===
+    "arr"
+      ? "arr"
+      : "dep";
+
+
+  document
+    .getElementById(
+      "arrBtn"
+    )
+    .classList
+    .toggle(
+      "active",
+      direction ===
+        "arr"
+    );
+
+
+  document
+    .getElementById(
+      "depBtn"
+    )
+    .classList
+    .toggle(
+      "active",
+      direction ===
+        "dep"
+    );
+
+}
+
+
+/************************************************************
+ * KML REFRESH
+ ************************************************************/
+
+async function refreshAirportKml() {
+
+  const response =
+    await fetch(
+      NDB_KML_URL,
+      {
+        cache:
+          "force-cache"
+      }
+    );
+
+
+  if (!response.ok) {
+
+    throw new Error(
+      "KML HTTP " +
+      response.status
+    );
+
+  }
+
+
+  const text =
+    await response.text();
+
+
+  const db =
+    buildAirportDbFromKml(
+      text
+    );
+
+
+  if (
+    Object.keys(
+      db
+    ).length
+  ) {
+
+    airportDb =
+      db;
+
+
+    saveJsonStorage(
+      KML_STORAGE_KEY,
+      db
+    );
+
+  }
+
+}
+
+
+/************************************************************
+ * KML PARSER
+ ************************************************************/
+
+function buildAirportDbFromKml(
+  text
+) {
+
+  const xml =
+    new DOMParser()
+      .parseFromString(
+        text,
+        "application/xml"
+      );
+
+
+  const result =
+    {};
+
+
+  const placemarks =
+    Array.from(
+      xml.getElementsByTagName(
+        "Placemark"
+      )
+    );
+
+
+  placemarks.forEach(
+    function(pm) {
+
+      const point =
+        pm.getElementsByTagName(
+          "Point"
+        )[0];
+
+
+      if (!point) {
+
+        return;
+
+      }
+
+
+      const coordNode =
+        point.getElementsByTagName(
+          "coordinates"
+        )[0];
+
+
+      if (!coordNode) {
+
+        return;
+
+      }
+
+
+      const nameNode =
+        pm.getElementsByTagName(
+          "name"
+        )[0];
+
+
+      const rawName =
+        nameNode
+          ? String(
+              nameNode.textContent ||
+              ""
+            ).trim()
+          : "";
+
+
+      const match =
+        rawName
+          .toUpperCase()
+          .match(
+            /\b[A-Z]{4}\b/
+          );
+
+
+      if (!match) {
+
+        return;
+
+      }
+
+
+      const code =
+        match[0];
+
+
+      const coordText =
+        String(
+          coordNode.textContent ||
+          ""
+        )
+        .trim()
+        .split(
+          /\s+/
+        )[0];
+
+
+      const parts =
+        coordText.split(
+          ","
+        );
+
+
+      if (
+        parts.length < 2
+      ) {
+
+        return;
+
+      }
+
+
+      const lon =
+        Number(
+          parts[0]
+        );
+
+
+      const lat =
+        Number(
+          parts[1]
+        );
+
+
+      if (
+        !Number.isFinite(
+          lat
+        ) ||
+        !Number.isFinite(
+          lon
+        )
+      ) {
+
+        return;
+
+      }
+
+
+      result[
+        code
+      ] = {
+
+        icao:
+          code,
+
+        lat:
+          lat,
+
+        lon:
+          lon,
+
+        source:
+          "KML"
+
+      };
+
+    }
+  );
+
+
+  return result;
 
 }
 
@@ -1680,238 +2260,121 @@ async function refreshAirportInfo() {
     data;
 
 
-  try {
+  saveJsonStorage(
+    AIRPORT_INFO_STORAGE_KEY,
+    data
+  );
 
-    localStorage.setItem(
-      AIRPORT_INFO_STORAGE_KEY,
-      JSON.stringify(
-        data
-      )
-    );
-
-  } catch {}
+}
 
 
-  console.log(
-    "Airport info loaded:",
+/************************************************************
+ * CSV PARSER
+ *
+ * quoted comma 지원.
+ ************************************************************/
+
+function parseCsvLine(
+  line
+) {
+
+  const result =
+    [];
+
+
+  let current =
+    "";
+
+
+  let quoted =
+    false;
+
+
+  for (
+    let i = 0;
+    i < line.length;
+    i++
+  ) {
+
+    const ch =
+      line[i];
+
+
+    if (
+      ch === '"'
+    ) {
+
+      if (
+        quoted &&
+        line[
+          i + 1
+        ] === '"'
+      ) {
+
+        current += '"';
+
+        i++;
+
+      } else {
+
+        quoted =
+          !quoted;
+
+      }
+
+    } else if (
+      ch === "," &&
+      !quoted
+    ) {
+
+      result.push(
+        current
+      );
+
+
+      current =
+        "";
+
+    } else {
+
+      current +=
+        ch;
+
+    }
+
+  }
+
+
+  result.push(
+    current
+  );
+
+
+  return result;
+
+}
+
+
+/************************************************************
+ * COUNTRIES CSV
+ ************************************************************/
+
+async function loadCountriesFromOurAirports() {
+
+  if (
     Object.keys(
-      airportInfoDb
+      countryDb
     ).length
-  );
+  ) {
 
-}
+    return;
 
+  }
 
-/************************************************************
- * GET AIRPORT INFO
- ************************************************************/
-
-function getAirportInfo(
-  code
-) {
-
-  code =
-    String(
-      code || ""
-    )
-      .trim()
-      .toUpperCase();
-
-
-  return (
-    airportInfoDb[
-      code
-    ] ||
-    null
-  );
-
-}
-
-
-/************************************************************
- * DATE
- ************************************************************/
-
-function setToday() {
-
-  const d =
-    new Date();
-
-
-  document
-    .getElementById(
-      "dateInput"
-    )
-    .value =
-
-      d.getFullYear() +
-      "-" +
-
-      String(
-        d.getMonth() + 1
-      ).padStart(
-        2,
-        "0"
-      ) +
-      "-" +
-
-      String(
-        d.getDate()
-      ).padStart(
-        2,
-        "0"
-      );
-
-}
-
-
-/************************************************************
- * EVENTS
- ************************************************************/
-
-function bindEvents() {
-
-  arrBtn.onclick =
-    () =>
-      setDirection(
-        "arr"
-      );
-
-
-  depBtn.onclick =
-    () =>
-      setDirection(
-        "dep"
-      );
-
-
-  queryBtn.onclick =
-    searchFlights;
-
-
-  filterChip.onclick =
-    clearAirportFilter;
-
-
-  closeDetail.onclick =
-    closeDetail;
-
-
-  mapAirportBtn.onclick =
-    searchAirportOnMap;
-
-
-  copyRouteBtn.onclick =
-    copyRouteText;
-
-
-  copyOriginalBtn.onclick =
-    copyOriginalText;
-
-
-  airportInput.addEventListener(
-    "keydown",
-    e => {
-
-      if (
-        e.key ===
-        "Enter"
-      ) {
-
-        searchFlights();
-
-      }
-
-    }
-  );
-
-
-  mapAirportInput.addEventListener(
-    "keydown",
-    e => {
-
-      if (
-        e.key ===
-        "Enter"
-      ) {
-
-        searchAirportOnMap();
-
-      }
-
-    }
-  );
-
-
-  [
-    airportInput,
-    mapAirportInput
-  ]
-  .forEach(
-    input => {
-
-      input.addEventListener(
-        "input",
-        function() {
-
-          this.value =
-            this.value
-              .toUpperCase()
-              .replace(
-                /[^A-Z]/g,
-                ""
-              )
-              .slice(
-                0,
-                4
-              );
-
-        }
-      );
-
-    }
-  );
-
-}
-
-
-/************************************************************
- * MODE
- ************************************************************/
-
-function setDirection(
-  mode
-) {
-
-  direction =
-    mode === "arr"
-      ? "arr"
-      : "dep";
-
-
-  arrBtn.classList.toggle(
-    "active",
-    direction === "arr"
-  );
-
-
-  depBtn.classList.toggle(
-    "active",
-    direction === "dep"
-  );
-
-}
-
-
-/************************************************************
- * KML
- ************************************************************/
-
-async function refreshAirportKml() {
 
   const response =
     await fetch(
-      NDB_KML_URL,
+      OURAIRPORTS_COUNTRIES_URL,
       {
         cache:
           "force-cache"
@@ -1919,10 +2382,12 @@ async function refreshAirportKml() {
     );
 
 
-  if (!response.ok) {
+  if (
+    !response.ok
+  ) {
 
     throw new Error(
-      "KML HTTP " +
+      "countries.csv HTTP " +
       response.status
     );
 
@@ -1933,157 +2398,373 @@ async function refreshAirportKml() {
     await response.text();
 
 
-  const db =
-    buildAirportDbFromKml(
-      text
-    );
+  const lines =
+    text
+      .replace(
+        /^\uFEFF/,
+        ""
+      )
+      .split(
+        /\r?\n/
+      );
 
 
   if (
-    Object.keys(
-      db
-    ).length
+    lines.length < 2
   ) {
 
-    airportDb =
-      db;
-
-
-    try {
-
-      localStorage.setItem(
-        KML_STORAGE_KEY,
-        JSON.stringify(
-          db
-        )
-      );
-
-    } catch {}
+    return;
 
   }
 
-}
+
+  const headers =
+    parseCsvLine(
+      lines[0]
+    );
 
 
-/************************************************************
- * KML PARSER
- ************************************************************/
+  const codeIndex =
+    headers.indexOf(
+      "code"
+    );
 
-function buildAirportDbFromKml(
-  text
-) {
 
-  const xml =
-    new DOMParser()
-      .parseFromString(
-        text,
-        "application/xml"
-      );
+  const nameIndex =
+    headers.indexOf(
+      "name"
+    );
 
 
   const result =
     {};
 
 
-  Array
-    .from(
-      xml.getElementsByTagName(
-        "Placemark"
+  for (
+    let i = 1;
+    i < lines.length;
+    i++
+  ) {
+
+    if (
+      !lines[i]
+    ) {
+
+      continue;
+
+    }
+
+
+    const row =
+      parseCsvLine(
+        lines[i]
+      );
+
+
+    const code =
+      String(
+        row[
+          codeIndex
+        ] ||
+        ""
       )
-    )
-    .forEach(
-      pm => {
-
-        const point =
-          pm.getElementsByTagName(
-            "Point"
-          )[0];
+        .trim()
+        .toUpperCase();
 
 
-        if (!point) {
-
-          return;
-
-        }
-
-
-        const coord =
-          point.getElementsByTagName(
-            "coordinates"
-          )[0];
+    const name =
+      String(
+        row[
+          nameIndex
+        ] ||
+        ""
+      )
+        .trim();
 
 
-        if (!coord) {
+    if (
+      code &&
+      name
+    ) {
 
-          return;
+      result[
+        code
+      ] =
+        name;
 
-        }
+    }
 
-
-        const nameNode =
-          pm.getElementsByTagName(
-            "name"
-          )[0];
-
-
-        const rawName =
-          nameNode
-            ? String(
-                nameNode.textContent ||
-                ""
-              ).trim()
-            : "";
+  }
 
 
-        const match =
-          rawName
-            .toUpperCase()
-            .match(
-              /\b[A-Z]{4}\b/
+  countryDb =
+    result;
+
+
+  saveJsonStorage(
+    COUNTRY_STORAGE_KEY,
+    result
+  );
+
+}
+
+
+/************************************************************
+ * LOAD OURAIRPORTS
+ *
+ * 이 함수는 로컬 DB에서 공항을 못 찾았을 때만 호출됨.
+ *
+ * 최초 fallback 때 airports.csv를 1회 다운로드하고
+ * ICAO code가 있는 공항을 브라우저 캐시에 저장.
+ ************************************************************/
+
+async function ensureOurAirportsLoaded() {
+
+  if (
+    ourAirportsLoadPromise
+  ) {
+
+    return ourAirportsLoadPromise;
+
+  }
+
+
+  ourAirportsLoadPromise =
+    (async function() {
+
+      await loadCountriesFromOurAirports()
+        .catch(
+          function(err) {
+
+            console.warn(
+              "Country DB load failed:",
+              err
             );
 
+          }
+        );
 
-        if (!match) {
 
-          return;
+      const response =
+        await fetch(
+          OURAIRPORTS_AIRPORTS_URL,
+          {
+            cache:
+              "force-cache"
+          }
+        );
+
+
+      if (
+        !response.ok
+      ) {
+
+        throw new Error(
+          "airports.csv HTTP " +
+          response.status
+        );
+
+      }
+
+
+      const text =
+        await response.text();
+
+
+      const lines =
+        text
+          .replace(
+            /^\uFEFF/,
+            ""
+          )
+          .split(
+            /\r?\n/
+          );
+
+
+      if (
+        lines.length < 2
+      ) {
+
+        return;
+
+      }
+
+
+      const headers =
+        parseCsvLine(
+          lines[0]
+        );
+
+
+      const identIndex =
+        headers.indexOf(
+          "ident"
+        );
+
+
+      const icaoIndex =
+        headers.indexOf(
+          "icao_code"
+        );
+
+
+      const nameIndex =
+        headers.indexOf(
+          "name"
+        );
+
+
+      const latIndex =
+        headers.indexOf(
+          "latitude_deg"
+        );
+
+
+      const lonIndex =
+        headers.indexOf(
+          "longitude_deg"
+        );
+
+
+      const countryIndex =
+        headers.indexOf(
+          "iso_country"
+        );
+
+
+      const result =
+        {};
+
+
+      for (
+        let i = 1;
+        i < lines.length;
+        i++
+      ) {
+
+        const line =
+          lines[i];
+
+
+        if (!line) {
+
+          continue;
 
         }
 
 
-        const code =
-          match[0];
+        const row =
+          parseCsvLine(
+            line
+          );
 
 
-        const parts =
+        let code =
           String(
-            coord.textContent ||
+            row[
+              icaoIndex
+            ] ||
             ""
           )
-          .trim()
-          .split(/\s+/)[0]
-          .split(",");
+            .trim()
+            .toUpperCase();
 
 
-        const lon =
-          Number(
-            parts[0]
-          );
+        /*
+         * 혹시 icao_code가 비어 있고 ident가 ICAO 4자리면 사용.
+         */
+        if (
+          !/^[A-Z]{4}$/.test(
+            code
+          )
+        ) {
+
+          const ident =
+            String(
+              row[
+                identIndex
+              ] ||
+              ""
+            )
+              .trim()
+              .toUpperCase();
+
+
+          if (
+            /^[A-Z]{4}$/.test(
+              ident
+            )
+          ) {
+
+            code =
+              ident;
+
+          }
+
+        }
+
+
+        if (
+          !/^[A-Z]{4}$/.test(
+            code
+          )
+        ) {
+
+          continue;
+
+        }
 
 
         const lat =
           Number(
-            parts[1]
+            row[
+              latIndex
+            ]
+          );
+
+
+        const lon =
+          Number(
+            row[
+              lonIndex
+            ]
           );
 
 
         if (
-          !Number.isFinite(lat) ||
-          !Number.isFinite(lon)
+          !Number.isFinite(
+            lat
+          ) ||
+          !Number.isFinite(
+            lon
+          )
         ) {
 
-          return;
+          continue;
 
         }
+
+
+        const name =
+          String(
+            row[
+              nameIndex
+            ] ||
+            ""
+          )
+            .trim();
+
+
+        const isoCountry =
+          String(
+            row[
+              countryIndex
+            ] ||
+            ""
+          )
+            .trim()
+            .toUpperCase();
 
 
         result[
@@ -2097,27 +2778,133 @@ function buildAirportDbFromKml(
             lat,
 
           lon:
-            lon
+            lon,
+
+          name:
+            name,
+
+          country:
+            countryDb[
+              isoCountry
+            ] ||
+            isoCountry,
+
+          isoCountry:
+            isoCountry,
+
+          source:
+            "OurAirports"
 
         };
 
       }
-    );
 
 
-  return result;
+      fallbackAirportDb =
+        result;
+
+
+      saveJsonStorage(
+        FALLBACK_AIRPORT_STORAGE_KEY,
+        result
+      );
+
+
+      console.log(
+        "OurAirports fallback loaded:",
+        Object.keys(
+          result
+        ).length
+      );
+
+    })();
+
+
+  try {
+
+    await ourAirportsLoadPromise;
+
+  } catch (
+    err
+  ) {
+
+    /*
+     * 실패하면 다음 검색 때 재시도 가능하게.
+     */
+    ourAirportsLoadPromise =
+      null;
+
+
+    throw err;
+
+  }
 
 }
 
 
 /************************************************************
- * GET AIRPORT
- *
- * Nominatim 없음.
- * KML 좌표만 사용.
+ * LOOKUP FALLBACK AIRPORT
  ************************************************************/
 
-async function getAirport(
+async function lookupAirportFromFallback(
+  code
+) {
+
+  code =
+    String(
+      code || ""
+    )
+      .trim()
+      .toUpperCase();
+
+
+  /*
+   * localStorage cache에 이미 있음.
+   */
+  if (
+    fallbackAirportDb[
+      code
+    ]
+  ) {
+
+    return fallbackAirportDb[
+      code
+    ];
+
+  }
+
+
+  /*
+   * 아직 전체 OurAirports DB를 안 읽었다면 load.
+   */
+  await ensureOurAirportsLoaded();
+
+
+  return (
+    fallbackAirportDb[
+      code
+    ] ||
+    null
+  );
+
+}
+
+
+/************************************************************
+ * RESOLVE AIRPORT
+ *
+ * 최종 핵심 함수.
+ *
+ * 좌표:
+ * 1. KML
+ * 2. OurAirports fallback
+ *
+ * 정보:
+ * 1. airport_info.json
+ * 2. OurAirports fallback
+ ************************************************************/
+
+async function resolveAirport(
   code
 ) {
 
@@ -2141,40 +2928,251 @@ async function getAirport(
 
 
   /*
-   * 이미 로드됨
+   * LOCAL COORDINATE
+   */
+
+  let coord =
+    airportDb[
+      code
+    ] ||
+    null;
+
+
+  /*
+   * LOCAL INFO
+   */
+
+  let info =
+    airportInfoDb[
+      code
+    ] ||
+    null;
+
+
+  /*
+   * 기존 fallback cache 확인
+   */
+
+  let fallback =
+    fallbackAirportDb[
+      code
+    ] ||
+    null;
+
+
+  /*
+   * 좌표 또는 정보가 하나라도 없으면 fallback 조회.
    */
 
   if (
-    airportDb[
-      code
-    ]
+    !coord ||
+    !info
   ) {
 
-    return airportDb[
-      code
-    ];
+    try {
+
+      fallback =
+        fallback ||
+        await lookupAirportFromFallback(
+          code
+        );
+
+    } catch (
+      err
+    ) {
+
+      console.warn(
+        "Fallback airport lookup failed:",
+        code,
+        err
+      );
+
+    }
 
   }
 
 
   /*
-   * KML background refresh가 아직 끝나지 않은 경우
-   * 한 번 기다려 봄
+   * 좌표:
+   * KML 우선.
    */
 
-  try {
+  if (
+    !coord &&
+    fallback
+  ) {
 
-    await refreshAirportKml();
+    coord = {
 
-  } catch {}
+      icao:
+        code,
+
+      lat:
+        Number(
+          fallback.lat
+        ),
+
+      lon:
+        Number(
+          fallback.lon
+        ),
+
+      source:
+        "OurAirports"
+
+    };
+
+  }
 
 
-  return (
-    airportDb[
+  /*
+   * 좌표가 없으면 지도 표시 불가.
+   */
+
+  if (
+    !coord ||
+    !Number.isFinite(
+      Number(
+        coord.lat
+      )
+    ) ||
+    !Number.isFinite(
+      Number(
+        coord.lon
+      )
+    )
+  ) {
+
+    return null;
+
+  }
+
+
+  /*
+   * INFO:
+   * airport_info.json 우선.
+   */
+
+  let name =
+    "";
+
+
+  let country =
+    "";
+
+
+  if (
+    info
+  ) {
+
+    name =
+      String(
+        info.name ||
+        ""
+      ).trim();
+
+
+    country =
+      String(
+        info.country ||
+        ""
+      ).trim();
+
+  }
+
+
+  /*
+   * 부족한 부분만 fallback으로 보완.
+   */
+
+  if (
+    fallback
+  ) {
+
+    if (
+      !name
+    ) {
+
+      name =
+        String(
+          fallback.name ||
+          ""
+        ).trim();
+
+    }
+
+
+    if (
+      !country
+    ) {
+
+      country =
+        String(
+          fallback.country ||
+          ""
+        ).trim();
+
+    }
+
+  }
+
+
+  return {
+
+    icao:
+      code,
+
+    lat:
+      Number(
+        coord.lat
+      ),
+
+    lon:
+      Number(
+        coord.lon
+      ),
+
+    name:
+      name,
+
+    country:
+      country,
+
+    coordinateSource:
+      coord.source ||
+      "KML",
+
+    infoSource:
+      info
+        ? "airport_info.json"
+        : (
+            fallback
+              ? "OurAirports"
+              : ""
+          )
+
+  };
+
+}
+
+
+/************************************************************
+ * GET AIRPORT FOR NORMAL MAP OPERATIONS
+ *
+ * flight-result map에서도 KML에 없으면 fallback 가능.
+ ************************************************************/
+
+async function getAirport(
+  code
+) {
+
+  const airport =
+    await resolveAirport(
       code
-    ] ||
-    null
-  );
+    );
+
+
+  return airport;
 
 }
 
@@ -2189,13 +3187,29 @@ function normalizeLonNearReference(
 ) {
 
   lon =
-    Number(lon);
+    Number(
+      lon
+    );
 
 
   referenceLon =
     Number(
       referenceLon
     );
+
+
+  if (
+    !Number.isFinite(
+      lon
+    ) ||
+    !Number.isFinite(
+      referenceLon
+    )
+  ) {
+
+    return lon;
+
+  }
 
 
   while (
@@ -2232,6 +3246,13 @@ function getRenderLatLng(
   referenceLon
 ) {
 
+  if (!airport) {
+
+    return null;
+
+  }
+
+
   return [
 
     Number(
@@ -2249,6 +3270,23 @@ function getRenderLatLng(
 
 
 /************************************************************
+ * QUERY CODE
+ ************************************************************/
+
+function getQueryAirportCode() {
+
+  return document
+    .getElementById(
+      "airportInput"
+    )
+    .value
+    .trim()
+    .toUpperCase();
+
+}
+
+
+/************************************************************
  * AIRLINE
  ************************************************************/
 
@@ -2260,10 +3298,10 @@ function getAirlineName(
     String(
       flightNo || ""
     )
-    .toUpperCase()
-    .match(
-      /^[A-Z]{3}/
-    );
+      .toUpperCase()
+      .match(
+        /^[A-Z]{3}/
+      );
 
 
   if (!match) {
@@ -2288,19 +3326,28 @@ function getAirlineName(
  ************************************************************/
 
 function getCountryGroupByIcao(
-  code
+  icao
 ) {
 
-  code =
+  const code =
     String(
-      code || ""
+      icao || ""
     )
       .trim()
       .toUpperCase();
 
 
+  if (!code) {
+
+    return "Other";
+
+  }
+
+
   if (
-    /^RK/.test(code)
+    /^RK/.test(
+      code
+    )
   ) {
 
     return "Korea";
@@ -2309,7 +3356,9 @@ function getCountryGroupByIcao(
 
 
   if (
-    /^(RJ|RO)/.test(code)
+    /^(RJ|RO)/.test(
+      code
+    )
   ) {
 
     return "Japan";
@@ -2318,7 +3367,9 @@ function getCountryGroupByIcao(
 
 
   if (
-    /^RC/.test(code)
+    /^RC/.test(
+      code
+    )
   ) {
 
     return "Taiwan";
@@ -2327,7 +3378,9 @@ function getCountryGroupByIcao(
 
 
   if (
-    /^(VH|VM)/.test(code)
+    /^(VH|VM)/.test(
+      code
+    )
   ) {
 
     return "Hong Kong / Macau";
@@ -2336,12 +3389,11 @@ function getCountryGroupByIcao(
 
 
   /*
-   * Mainland China.
-   *
-   * ZM Mongolia,
-   * ZK North Korea 제외.
+   * Mainland China only.
+   * ZK = North Korea
+   * ZM = Mongolia
+   * 제외.
    */
-
   if (
     /^(ZB|ZG|ZH|ZJ|ZL|ZP|ZS|ZU|ZW|ZY)/.test(
       code
@@ -2387,13 +3439,8 @@ function getCountryGroupByIcao(
 
 
   /*
-   * Southeast Asia
-   *
-   * VY Myanmar 포함
-   * WP Timor-Leste 포함
-   * WQ Indonesia 일부 prefix 포함
+   * Myanmar VY 포함
    */
-
   if (
     /^(RP|WB|WI|WM|WS|WA|WQ|WP|VT|VV|VD|VL|VY)/.test(
       code
@@ -2404,10 +3451,6 @@ function getCountryGroupByIcao(
 
   }
 
-
-  /*
-   * Israel LL 포함
-   */
 
   if (
     /^(LL|OB|OE|OI|OJ|OK|OL|OM|OO|OR|OS|OT)/.test(
@@ -2430,11 +3473,6 @@ function getCountryGroupByIcao(
 
   }
 
-
-  /*
-   * Kazakhstan / Kyrgyzstan /
-   * Uzbekistan / Turkmenistan / Tajikistan
-   */
 
   if (
     /^(UA|UC|UT|ZM)/.test(
@@ -2486,23 +3524,34 @@ function getCountryGroupByIcao(
 
 
 /************************************************************
- * FLIGHT COLOR
+ * FLIGHT GROUP / COLOR
  ************************************************************/
 
 function getCounterpartAirport(
   flight
 ) {
 
-  return direction ===
+  if (
+    direction ===
     "dep"
+  ) {
 
-    ? String(
-        flight.arr || ""
-      ).toUpperCase()
+    return String(
+      flight.arr ||
+      ""
+    )
+      .trim()
+      .toUpperCase();
 
-    : String(
-        flight.dep || ""
-      ).toUpperCase();
+  }
+
+
+  return String(
+    flight.dep ||
+    ""
+  )
+    .trim()
+    .toUpperCase();
 
 }
 
@@ -2590,8 +3639,10 @@ function getFlightUniqueKey(
 ) {
 
   if (
-    flight.flightPk !== null &&
-    flight.flightPk !== undefined &&
+    flight.flightPk !==
+      null &&
+    flight.flightPk !==
+      undefined &&
     String(
       flight.flightPk
     ) !== ""
@@ -2599,7 +3650,9 @@ function getFlightUniqueKey(
 
     return (
       "PK_" +
-      flight.flightPk
+      String(
+        flight.flightPk
+      )
     );
 
   }
@@ -2614,37 +3667,50 @@ function getFlightUniqueKey(
     flight.schDate,
     flight.amsRecPk
 
-  ].join("|");
+  ].join(
+    "|"
+  );
 
 }
 
 
 /************************************************************
- * MAIN SEARCH
+ * MAIN UBIKAIS SEARCH
  ************************************************************/
 
 async function searchFlights() {
 
   const airport =
-    airportInput
-      .value
-      .trim()
-      .toUpperCase();
+    getQueryAirportCode();
 
 
   const date =
-    dateInput.value;
+    document
+      .getElementById(
+        "dateInput"
+      )
+      .value;
+
+
+  if (!date) {
+
+    alert(
+      "날짜를 선택하세요."
+    );
+
+    return;
+
+  }
 
 
   if (
-    !date ||
     !/^[A-Z]{4}$/.test(
       airport
     )
   ) {
 
     alert(
-      "날짜와 ICAO 4자리 코드를 확인하세요."
+      "ICAO 4자리 공항코드를 입력하세요."
     );
 
     return;
@@ -2656,23 +3722,34 @@ async function searchFlights() {
     false;
 
 
-  const searchId =
+  const thisSearchId =
     ++activeSearchId;
 
 
-  queryBtn.disabled =
+  const button =
+    document
+      .getElementById(
+        "queryBtn"
+      );
+
+
+  button.disabled =
     true;
 
 
-  queryBtn.textContent =
+  button.textContent =
     "LOADING";
 
 
   resetResults();
 
 
-  flightList.innerHTML =
-    '<div class="empty">UBIKAIS 조회 중...</div>';
+  document
+    .getElementById(
+      "flightList"
+    )
+    .innerHTML =
+      '<div class="empty">UBIKAIS 조회 중...</div>';
 
 
   try {
@@ -2725,7 +3802,7 @@ async function searchFlights() {
 
 
     if (
-      searchId !==
+      thisSearchId !==
       activeSearchId
     ) {
 
@@ -2747,20 +3824,21 @@ async function searchFlights() {
     }
 
 
+    const records =
+      Array.isArray(
+        data.records
+      )
+        ? data.records
+        : [];
+
+
     const seen =
       new Set();
 
 
     allFlights =
-      (
-        Array.isArray(
-          data.records
-        )
-          ? data.records
-          : []
-      )
-      .filter(
-        flight => {
+      records.filter(
+        function(flight) {
 
           const key =
             getFlightUniqueKey(
@@ -2769,7 +3847,9 @@ async function searchFlights() {
 
 
           if (
-            seen.has(key)
+            seen.has(
+              key
+            )
           ) {
 
             return false;
@@ -2777,7 +3857,10 @@ async function searchFlights() {
           }
 
 
-          seen.add(key);
+          seen.add(
+            key
+          );
+
 
           return true;
 
@@ -2793,34 +3876,53 @@ async function searchFlights() {
 
 
     renderResultAirportsFast(
-      searchId
-    );
+      thisSearchId
+    )
+      .catch(
+        function(err) {
+
+          console.error(
+            "Map render failed:",
+            err
+          );
+
+        }
+      );
 
 
   } catch (
-    error
+    err
   ) {
 
-    flightList.innerHTML =
-      '<div class="empty">' +
-      escapeHtml(
-        error.message
-      ) +
-      '</div>';
+    console.error(
+      err
+    );
+
+
+    document
+      .getElementById(
+        "flightList"
+      )
+      .innerHTML =
+        '<div class="empty">' +
+        escapeHtml(
+          err.message
+        ) +
+        '</div>';
 
 
   } finally {
 
     if (
-      searchId ===
+      thisSearchId ===
       activeSearchId
     ) {
 
-      queryBtn.disabled =
+      button.disabled =
         false;
 
 
-      queryBtn.textContent =
+      button.textContent =
         "SEARCH";
 
     }
@@ -2852,35 +3954,57 @@ function resetResults() {
     "";
 
 
-  resultLayer.clearLayers();
+  resultLayer
+    .clearLayers();
 
-  selectedLegLayer.clearLayers();
+
+  selectedLegLayer
+    .clearLayers();
 
 
+  /*
+   * 오른쪽 아래 검색 marker는 유지.
+   */
   closeDetail();
+
 
   updateFilterChip();
 
 
-  countChip.textContent =
-    "0 Flights";
+  document
+    .getElementById(
+      "countChip"
+    )
+    .textContent =
+      "0 Flights";
 
 }
 
 
 /************************************************************
- * LIST
+ * FLIGHT LIST
  ************************************************************/
 
 function renderFlightList() {
 
-  flightList.innerHTML =
+  const box =
+    document
+      .getElementById(
+        "flightList"
+      );
+
+
+  box.innerHTML =
     "";
 
 
-  countChip.textContent =
-    visibleFlights.length +
-    " Flights";
+  document
+    .getElementById(
+      "countChip"
+    )
+    .textContent =
+      visibleFlights.length +
+      " Flights";
 
 
   updateFilterChip();
@@ -2890,7 +4014,7 @@ function renderFlightList() {
     !visibleFlights.length
   ) {
 
-    flightList.innerHTML =
+    box.innerHTML =
       '<div class="empty">조회 결과 없음</div>';
 
     return;
@@ -2899,7 +4023,7 @@ function renderFlightList() {
 
 
   visibleFlights.forEach(
-    flight => {
+    function(flight) {
 
       const airline =
         getAirlineName(
@@ -2919,18 +4043,26 @@ function renderFlightList() {
         );
 
 
-      const item =
-        document.createElement(
-          "div"
+      const noFpl =
+        isFplMissing(
+          flight
         );
+
+
+      const item =
+        document
+          .createElement(
+            "div"
+          );
 
 
       item.className =
         "flight-item";
 
 
-      item.style.borderLeftColor =
-        color;
+      item.style
+        .borderLeftColor =
+          color;
 
 
       if (
@@ -2943,9 +4075,10 @@ function renderFlightList() {
         )
       ) {
 
-        item.classList.add(
-          "active"
-        );
+        item.classList
+          .add(
+            "active"
+          );
 
       }
 
@@ -2965,11 +4098,11 @@ function renderFlightList() {
             ${
               airline
                 ? `
-                <span class="airline-name">
-                  (${escapeHtml(
-                    airline
-                  )})
-                </span>
+                  <span class="airline-name">
+                    (${escapeHtml(
+                      airline
+                    )})
+                  </span>
                 `
                 : ""
             }
@@ -2978,10 +4111,12 @@ function renderFlightList() {
 
 
           <div class="aircraft">
+
             ${escapeHtml(
               flight.acType ||
               "-"
             )}
+
           </div>
 
         </div>
@@ -2989,7 +4124,9 @@ function renderFlightList() {
 
         <div
           class="flight-leg"
-          style="color:${color}"
+          style="
+            color:${color};
+          "
         >
 
           <span>
@@ -3010,9 +4147,7 @@ function renderFlightList() {
 
 
           ${
-            isFplMissing(
-              flight
-            )
+            noFpl
               ? `
                 <span class="no-fpl-text">
                   (No FPL filed yet)
@@ -3041,10 +4176,11 @@ function renderFlightList() {
             class="country-chip"
             style="
               background:${color};
+
               ${
                 group ===
                   "Middle East"
-                    ? "color:#111827"
+                    ? "color:#111827;"
                     : ""
               }
             "
@@ -3062,13 +4198,16 @@ function renderFlightList() {
 
 
       item.onclick =
-        () =>
+        function() {
+
           selectFlight(
             flight
           );
 
+        };
 
-      flightList.appendChild(
+
+      box.appendChild(
         item
       );
 
@@ -3089,21 +4228,35 @@ function makeAirportFlightMap() {
 
 
   allFlights.forEach(
-    flight => {
+    function(flight) {
 
-      [
-        flight.dep,
-        flight.arr
-      ]
-      .filter(Boolean)
-      .forEach(
-        rawCode => {
+      const codes =
+        Array.from(
+          new Set(
+            [
+              flight.dep,
+              flight.arr
+            ]
+            .filter(
+              Boolean
+            )
+            .map(
+              function(code) {
 
-          const code =
-            String(
-              rawCode
-            ).toUpperCase();
+                return String(
+                  code
+                )
+                  .trim()
+                  .toUpperCase();
 
+              }
+            )
+          )
+        );
+
+
+      codes.forEach(
+        function(code) {
 
           if (
             !temp[
@@ -3121,7 +4274,8 @@ function makeAirportFlightMap() {
 
           temp[
             code
-          ].set(
+          ]
+          .set(
             getFlightUniqueKey(
               flight
             ),
@@ -3143,7 +4297,7 @@ function makeAirportFlightMap() {
     temp
   )
   .forEach(
-    code => {
+    function(code) {
 
       result[
         code
@@ -3171,14 +4325,12 @@ async function renderResultAirportsFast(
   searchId
 ) {
 
-  resultLayer.clearLayers();
+  resultLayer
+    .clearLayers();
 
 
   const queryCode =
-    airportInput
-      .value
-      .trim()
-      .toUpperCase();
+    getQueryAirportCode();
 
 
   const queryAirport =
@@ -3199,7 +4351,9 @@ async function renderResultAirportsFast(
 
   const referenceLon =
     queryAirport
-      ? queryAirport.lon
+      ? Number(
+          queryAirport.lon
+        )
       : 127;
 
 
@@ -3207,47 +4361,87 @@ async function renderResultAirportsFast(
     makeAirportFlightMap();
 
 
-  for (
-    const code
-    of Object.keys(
+  const codes =
+    Object.keys(
       airportMap
-    )
-  ) {
-
-    const airport =
-      await getAirport(
-        code
-      );
-
-
-    if (
-      !airport ||
-      searchId !==
-        activeSearchId
-    ) {
-
-      continue;
-
-    }
-
-
-    addResultAirportMarker(
-
-      code,
-
-      airport,
-
-      airportMap[
-        code
-      ],
-
-      queryCode,
-
-      referenceLon
-
     );
 
+
+  /*
+   * Promise.allSettled로 병렬 처리.
+   */
+  const resolved =
+    await Promise.allSettled(
+      codes.map(
+        function(code) {
+
+          return getAirport(
+            code
+          );
+
+        }
+      )
+    );
+
+
+  if (
+    searchId !==
+    activeSearchId
+  ) {
+
+    return;
+
   }
+
+
+  resolved.forEach(
+    function(result, index) {
+
+      if (
+        result.status !==
+        "fulfilled"
+      ) {
+
+        return;
+
+      }
+
+
+      const airport =
+        result.value;
+
+
+      if (!airport) {
+
+        return;
+
+      }
+
+
+      const code =
+        codes[
+          index
+        ];
+
+
+      addResultAirportMarker(
+
+        code,
+
+        airport,
+
+        airportMap[
+          code
+        ],
+
+        queryCode,
+
+        referenceLon
+
+      );
+
+    }
+  );
 
 
   fitResultAirports(
@@ -3258,7 +4452,7 @@ async function renderResultAirportsFast(
 
 
 /************************************************************
- * RESULT MARKER
+ * RESULT AIRPORT MARKER
  ************************************************************/
 
 function addResultAirportMarker(
@@ -3269,8 +4463,16 @@ function addResultAirportMarker(
   referenceLon
 ) {
 
+  const isQuery =
+    code ===
+    queryCode;
+
+
   const sample =
-    flights[0];
+    flights &&
+    flights.length
+      ? flights[0]
+      : null;
 
 
   let color =
@@ -3286,8 +4488,7 @@ function addResultAirportMarker(
 
 
   if (
-    code ===
-    queryCode
+    isQuery
   ) {
 
     const group =
@@ -3314,6 +4515,13 @@ function addResultAirportMarker(
       airport,
       referenceLon
     );
+
+
+  if (!latlng) {
+
+    return;
+
+  }
 
 
   const marker =
@@ -3343,7 +4551,10 @@ function addResultAirportMarker(
         "bottom",
 
       offset:
-        [0,12],
+        [
+          0,
+          12
+        ],
 
       className:
         "airport-label"
@@ -3354,10 +4565,13 @@ function addResultAirportMarker(
 
   marker.on(
     "click",
-    () =>
+    function() {
+
       filterByAirport(
         code
-      )
+      );
+
+    }
   );
 
 
@@ -3383,6 +4597,7 @@ function makeAirportIcon(
     className:
       "",
 
+
     html:
       `
 
@@ -3399,16 +4614,17 @@ function makeAirportIcon(
           ✈
         </div>
 
+
         ${
           Number(
             count
           ) > 0
             ? `
-            <div class="airport-badge">
-              ${Number(
-                count
-              )}
-            </div>
+              <div class="airport-badge">
+                ${Number(
+                  count
+                )}
+              </div>
             `
             : ""
         }
@@ -3417,11 +4633,19 @@ function makeAirportIcon(
 
       `,
 
+
     iconSize:
-      [40,40],
+      [
+        40,
+        40
+      ],
+
 
     iconAnchor:
-      [20,20]
+      [
+        20,
+        20
+      ]
 
   });
 
@@ -3439,6 +4663,7 @@ function makeSearchAirportIcon() {
     className:
       "",
 
+
     html:
       `
 
@@ -3452,11 +4677,19 @@ function makeSearchAirportIcon() {
 
       `,
 
+
     iconSize:
-      [44,55],
+      [
+        44,
+        55
+      ],
+
 
     iconAnchor:
-      [22,49]
+      [
+        22,
+        49
+      ]
 
   });
 
@@ -3466,15 +4699,16 @@ function makeSearchAirportIcon() {
 /************************************************************
  * BOTTOM RIGHT AIRPORT SEARCH
  *
- * 중요:
- * ATS PLAN 조회 안 함.
- * 왼쪽 리스트 변경 안 함.
+ * UBIKAIS와 완전히 독립.
  ************************************************************/
 
 async function searchAirportOnMap() {
 
   const code =
-    mapAirportInput
+    document
+      .getElementById(
+        "mapAirportInput"
+      )
       .value
       .trim()
       .toUpperCase();
@@ -3495,22 +4729,29 @@ async function searchAirportOnMap() {
   }
 
 
-  mapAirportBtn.disabled =
+  const button =
+    document
+      .getElementById(
+        "mapAirportBtn"
+      );
+
+
+  button.disabled =
     true;
 
 
-  mapAirportBtn.textContent =
+  button.textContent =
     "...";
 
 
   try {
 
-    /******************************************************
-     * COORDINATE
-     ******************************************************/
+    /********************************************************
+     * KML → JSON → OurAirports fallback
+     ********************************************************/
 
     const airport =
-      await getAirport(
+      await resolveAirport(
         code
       );
 
@@ -3519,7 +4760,7 @@ async function searchAirportOnMap() {
 
       alert(
         code +
-        " 공항 좌표를 찾을 수 없습니다."
+        " 공항을 찾을 수 없습니다."
       );
 
       return;
@@ -3527,19 +4768,34 @@ async function searchAirportOnMap() {
     }
 
 
-    /******************************************************
-     * SEARCH MARKER ONLY
-     ******************************************************/
+    /*
+     * 이전 검색 marker 제거.
+     */
 
-    searchLayer.clearLayers();
+    searchLayer
+      .clearLayers();
+
+
+    /*
+     * 현재 map world를 기준으로 longitude unwrap.
+     */
+
+    const referenceLon =
+      map
+        .getCenter()
+        .lng;
 
 
     const latlng =
       getRenderLatLng(
         airport,
-        map.getCenter().lng
+        referenceLon
       );
 
+
+    /********************************************************
+     * SEARCH ▼ MARKER
+     ********************************************************/
 
     const marker =
       L.marker(
@@ -3567,7 +4823,10 @@ async function searchAirportOnMap() {
           "top",
 
         offset:
-          [0,-18],
+          [
+            0,
+            -18
+          ],
 
         className:
           "search-airport-label"
@@ -3576,15 +4835,9 @@ async function searchAirportOnMap() {
     );
 
 
-    /******************************************************
-     * AIRPORT INFO
-     ******************************************************/
-
-    const info =
-      getAirportInfo(
-        code
-      );
-
+    /********************************************************
+     * POPUP
+     ********************************************************/
 
     let popup =
       `
@@ -3601,8 +4854,7 @@ async function searchAirportOnMap() {
 
 
     if (
-      info &&
-      info.name
+      airport.name
     ) {
 
       popup +=
@@ -3610,7 +4862,7 @@ async function searchAirportOnMap() {
 
         <div class="search-popup-name">
           ${escapeHtml(
-            info.name
+            airport.name
           )}
         </div>
 
@@ -3620,8 +4872,7 @@ async function searchAirportOnMap() {
 
 
     if (
-      info &&
-      info.country
+      airport.country
     ) {
 
       popup +=
@@ -3629,7 +4880,7 @@ async function searchAirportOnMap() {
 
         <div class="search-popup-country">
           ${escapeHtml(
-            info.country
+            airport.country
           )}
         </div>
 
@@ -3639,7 +4890,11 @@ async function searchAirportOnMap() {
 
 
     popup +=
-      "</div>";
+      `
+
+      </div>
+
+      `;
 
 
     marker.bindPopup(
@@ -3652,16 +4907,22 @@ async function searchAirportOnMap() {
     );
 
 
-    /******************************************************
-     * MOVE ONLY
-     ******************************************************/
+    /********************************************************
+     * MAP MOVE ONLY
+     *
+     * airportInput 변경 안 함.
+     * allFlights 변경 안 함.
+     * visibleFlights 변경 안 함.
+     ********************************************************/
 
     map.flyTo(
       latlng,
       8,
       {
+
         duration:
           .7
+
       }
     );
 
@@ -3670,11 +4931,12 @@ async function searchAirportOnMap() {
 
 
   } catch (
-    error
+    err
   ) {
 
     console.error(
-      error
+      "Airport search error:",
+      err
     );
 
 
@@ -3685,11 +4947,11 @@ async function searchAirportOnMap() {
 
   } finally {
 
-    mapAirportBtn.disabled =
+    button.disabled =
       false;
 
 
-    mapAirportBtn.textContent =
+    button.textContent =
       "AIRPORT";
 
   }
@@ -3706,10 +4968,7 @@ function filterByAirport(
 ) {
 
   const queryCode =
-    airportInput
-      .value
-      .trim()
-      .toUpperCase();
+    getQueryAirportCode();
 
 
   if (
@@ -3730,9 +4989,27 @@ function filterByAirport(
 
   visibleFlights =
     allFlights.filter(
-      flight =>
-        flight.dep === code ||
-        flight.arr === code
+      function(flight) {
+
+        return (
+          String(
+            flight.dep ||
+            ""
+          )
+            .trim()
+            .toUpperCase() ===
+            code ||
+
+          String(
+            flight.arr ||
+            ""
+          )
+            .trim()
+            .toUpperCase() ===
+            code
+        );
+
+      }
     );
 
 
@@ -3740,7 +5017,9 @@ function filterByAirport(
     null;
 
 
-  selectedLegLayer.clearLayers();
+  selectedLegLayer
+    .clearLayers();
+
 
   closeDetail();
 
@@ -3749,6 +5028,10 @@ function filterByAirport(
 
 }
 
+
+/************************************************************
+ * CLEAR FILTER
+ ************************************************************/
 
 function clearAirportFilter() {
 
@@ -3764,7 +5047,9 @@ function clearAirportFilter() {
     null;
 
 
-  selectedLegLayer.clearLayers();
+  selectedLegLayer
+    .clearLayers();
+
 
   closeDetail();
 
@@ -3774,30 +5059,43 @@ function clearAirportFilter() {
 }
 
 
+/************************************************************
+ * FILTER CHIP
+ ************************************************************/
+
 function updateFilterChip() {
+
+  const chip =
+    document
+      .getElementById(
+        "filterChip"
+      );
+
 
   if (
     airportFilter
   ) {
 
-    filterChip.textContent =
+    chip.textContent =
       airportFilter +
       " ×";
 
 
-    filterChip.classList.add(
-      "visible"
-    );
+    chip.classList
+      .add(
+        "visible"
+      );
 
   } else {
 
-    filterChip.textContent =
+    chip.textContent =
       "";
 
 
-    filterChip.classList.remove(
-      "visible"
-    );
+    chip.classList
+      .remove(
+        "visible"
+      );
 
   }
 
@@ -3826,37 +5124,56 @@ function selectFlight(
 
   drawSelectedLeg(
     flight
-  );
+  )
+    .catch(
+      console.error
+    );
 
 
   loadFpl(
     flight
-  );
+  )
+    .catch(
+      console.error
+    );
 
 }
 
 
 /************************************************************
- * LEG
+ * DRAW LEG
  ************************************************************/
 
 async function drawSelectedLeg(
   flight
 ) {
 
-  selectedLegLayer.clearLayers();
+  selectedLegLayer
+    .clearLayers();
+
+
+  const resolved =
+    await Promise.all(
+      [
+
+        getAirport(
+          flight.dep
+        ),
+
+        getAirport(
+          flight.arr
+        )
+
+      ]
+    );
 
 
   const dep =
-    await getAirport(
-      flight.dep
-    );
+    resolved[0];
 
 
   const arr =
-    await getAirport(
-      flight.arr
-    );
+    resolved[1];
 
 
   if (
@@ -3869,15 +5186,17 @@ async function drawSelectedLeg(
   }
 
 
-  const query =
+  const queryAirport =
     await getAirport(
-      airportInput.value
+      getQueryAirportCode()
     );
 
 
   const referenceLon =
-    query
-      ? query.lon
+    queryAirport
+      ? Number(
+          queryAirport.lon
+        )
       : 127;
 
 
@@ -3927,6 +5246,74 @@ async function drawSelectedLeg(
   );
 
 
+  [
+    {
+      code:
+        flight.dep,
+
+      latlng:
+        depLatLng
+    },
+
+    {
+      code:
+        flight.arr,
+
+      latlng:
+        arrLatLng
+    }
+
+  ]
+  .forEach(
+    function(x) {
+
+      const endpoint =
+        L.marker(
+          x.latlng,
+          {
+
+            icon:
+              makeAirportIcon(
+                color,
+                0,
+                36
+              )
+
+          }
+        );
+
+
+      endpoint.bindTooltip(
+        x.code,
+        {
+
+          permanent:
+            true,
+
+          direction:
+            "bottom",
+
+          offset:
+            [
+              0,
+              13
+            ],
+
+          className:
+            "airport-label"
+
+        }
+      );
+
+
+      endpoint.addTo(
+        selectedLegLayer
+      );
+
+    }
+  );
+
+
   map.fitBounds(
     L.latLngBounds(
       [
@@ -3938,15 +5325,29 @@ async function drawSelectedLeg(
 
       paddingTopLeft:
         [
-          415,
+
+          window.innerWidth >
+            767
+              ? 415
+              : 25,
+
           70
+
         ],
+
 
       paddingBottomRight:
         [
-          470,
+
+          window.innerWidth >
+            767
+              ? 470
+              : 25,
+
           70
+
         ],
+
 
       maxZoom:
         7
@@ -3971,60 +5372,106 @@ function openDetail(
     );
 
 
-  detailPanel.classList.add(
-    "open"
+  document
+    .getElementById(
+      "detailPanel"
+    )
+    .classList
+    .add(
+      "open"
+    );
+
+
+  document
+    .getElementById(
+      "detailLeg"
+    )
+    .textContent =
+      (
+        flight.dep ||
+        "-"
+      ) +
+      " → " +
+      (
+        flight.arr ||
+        "-"
+      );
+
+
+  document
+    .getElementById(
+      "detailFlight"
+    )
+    .textContent =
+      (
+        flight.flight ||
+        "-"
+      ) +
+
+      (
+        airline
+          ? " (" +
+            airline +
+            ")"
+          : ""
+      ) +
+
+      (
+        flight.acType
+          ? " · " +
+            flight.acType
+          : ""
+      );
+
+
+  document
+    .getElementById(
+      "routeBox"
+    )
+    .textContent =
+      "ATS PLAN 조회 중...";
+
+
+  document
+    .getElementById(
+      "originalBox"
+    )
+    .textContent =
+      "ATS PLAN 조회 중...";
+
+
+  resetCopyButton(
+    document
+      .getElementById(
+        "copyRouteBtn"
+      )
   );
 
 
-  detailLeg.textContent =
-    (
-      flight.dep ||
-      "-"
-    ) +
-    " → " +
-    (
-      flight.arr ||
-      "-"
-    );
-
-
-  detailFlight.textContent =
-    (
-      flight.flight ||
-      "-"
-    ) +
-
-    (
-      airline
-        ? " (" +
-          airline +
-          ")"
-        : ""
-    ) +
-
-    (
-      flight.acType
-        ? " · " +
-          flight.acType
-        : ""
-    );
-
-
-  routeBox.textContent =
-    "ATS PLAN 조회 중...";
-
-
-  originalBox.textContent =
-    "ATS PLAN 조회 중...";
+  resetCopyButton(
+    document
+      .getElementById(
+        "copyOriginalBtn"
+      )
+  );
 
 }
 
 
+/************************************************************
+ * CLOSE DETAIL
+ ************************************************************/
+
 function closeDetail() {
 
-  detailPanel.classList.remove(
-    "open"
-  );
+  document
+    .getElementById(
+      "detailPanel"
+    )
+    .classList
+    .remove(
+      "open"
+    );
 
 }
 
@@ -4041,12 +5488,20 @@ async function loadFpl(
     !flight.amsRecPk
   ) {
 
-    routeBox.textContent =
-      "ATS PLAN not filed yet.";
+    document
+      .getElementById(
+        "routeBox"
+      )
+      .textContent =
+        "ATS PLAN not filed yet.";
 
 
-    originalBox.textContent =
-      "ATS PLAN not filed yet.";
+    document
+      .getElementById(
+        "originalBox"
+      )
+      .textContent =
+        "ATS PLAN not filed yet.";
 
 
     return;
@@ -4054,9 +5509,20 @@ async function loadFpl(
   }
 
 
-  const pk =
+  const requestedPk =
     String(
       flight.amsRecPk
+    );
+
+
+  const url =
+    APPS_SCRIPT_URL +
+
+    "?mode=fpl" +
+
+    "&amsRecPk=" +
+    encodeURIComponent(
+      requestedPk
     );
 
 
@@ -4064,17 +5530,20 @@ async function loadFpl(
 
     const response =
       await fetch(
-
-        APPS_SCRIPT_URL +
-
-        "?mode=fpl" +
-
-        "&amsRecPk=" +
-        encodeURIComponent(
-          pk
-        )
-
+        url
       );
+
+
+    if (
+      !response.ok
+    ) {
+
+      throw new Error(
+        "Backend HTTP " +
+        response.status
+      );
+
+    }
 
 
     const data =
@@ -4086,7 +5555,7 @@ async function loadFpl(
       String(
         selectedFlight.amsRecPk
       ) !==
-      pk
+      requestedPk
     ) {
 
       return;
@@ -4094,28 +5563,62 @@ async function loadFpl(
     }
 
 
-    routeBox.textContent =
-      data.route ||
-      "Route 없음";
+    if (
+      data.status !==
+      "success"
+    ) {
+
+      throw new Error(
+        data.msg ||
+        "ATS PLAN 조회 실패"
+      );
+
+    }
 
 
-    originalBox.textContent =
-      data.original ||
-      "ATS Original Message 없음";
+    document
+      .getElementById(
+        "routeBox"
+      )
+      .textContent =
+        data.route ||
+        "Route 없음";
+
+
+    document
+      .getElementById(
+        "originalBox"
+      )
+      .textContent =
+        data.original ||
+        "ATS Original Message 없음";
 
 
   } catch (
-    error
+    err
   ) {
 
-    routeBox.textContent =
-      "ERROR";
+    console.error(
+      err
+    );
 
 
-    originalBox.textContent =
-      String(
-        error
-      );
+    document
+      .getElementById(
+        "routeBox"
+      )
+      .textContent =
+        "ERROR: " +
+        err.message;
+
+
+    document
+      .getElementById(
+        "originalBox"
+      )
+      .textContent =
+        "ERROR: " +
+        err.message;
 
   }
 
@@ -4126,47 +5629,99 @@ async function loadFpl(
  * COPY
  ************************************************************/
 
-async function copyText(
+async function copyToClipboard(
   text,
   button
 ) {
 
+  const value =
+    String(
+      text ||
+      ""
+    )
+      .trim();
+
+
+  if (
+    !value
+  ) {
+
+    return;
+
+  }
+
+
   try {
 
-    await navigator.clipboard.writeText(
-      text
-    );
+    if (
+      navigator.clipboard &&
+      window.isSecureContext
+    ) {
 
-
-    button.textContent =
-      "COPIED";
-
-
-    button.classList.add(
-      "copied"
-    );
-
-
-    setTimeout(
-      () => {
-
-        button.textContent =
-          "COPY";
-
-
-        button.classList.remove(
-          "copied"
+      await navigator
+        .clipboard
+        .writeText(
+          value
         );
 
-      },
-      1200
+    } else {
+
+      const textarea =
+        document
+          .createElement(
+            "textarea"
+          );
+
+
+      textarea.value =
+        value;
+
+
+      textarea.style
+        .position =
+          "fixed";
+
+
+      textarea.style
+        .left =
+          "-9999px";
+
+
+      document.body
+        .appendChild(
+          textarea
+        );
+
+
+      textarea.focus();
+
+      textarea.select();
+
+
+      document.execCommand(
+        "copy"
+      );
+
+
+      document.body
+        .removeChild(
+          textarea
+        );
+
+    }
+
+
+    showCopied(
+      button
     );
 
 
-  } catch {
+  } catch (
+    err
+  ) {
 
     alert(
-      "복사 실패"
+      "복사에 실패했습니다."
     );
 
   }
@@ -4176,9 +5731,19 @@ async function copyText(
 
 function copyRouteText() {
 
-  copyText(
-    routeBox.textContent,
-    copyRouteBtn
+  copyToClipboard(
+
+    document
+      .getElementById(
+        "routeBox"
+      )
+      .textContent,
+
+    document
+      .getElementById(
+        "copyRouteBtn"
+      )
+
   );
 
 }
@@ -4186,16 +5751,90 @@ function copyRouteText() {
 
 function copyOriginalText() {
 
-  copyText(
-    originalBox.textContent,
-    copyOriginalBtn
+  copyToClipboard(
+
+    document
+      .getElementById(
+        "originalBox"
+      )
+      .textContent,
+
+    document
+      .getElementById(
+        "copyOriginalBtn"
+      )
+
   );
 
 }
 
 
+function showCopied(
+  button
+) {
+
+  if (!button) {
+
+    return;
+
+  }
+
+
+  button.textContent =
+    "COPIED";
+
+
+  button.classList
+    .add(
+      "copied"
+    );
+
+
+  clearTimeout(
+    button._timer
+  );
+
+
+  button._timer =
+    setTimeout(
+      function() {
+
+        resetCopyButton(
+          button
+        );
+
+      },
+      1200
+    );
+
+}
+
+
+function resetCopyButton(
+  button
+) {
+
+  if (!button) {
+
+    return;
+
+  }
+
+
+  button.textContent =
+    "COPY";
+
+
+  button.classList
+    .remove(
+      "copied"
+    );
+
+}
+
+
 /************************************************************
- * FIT
+ * FIT RESULT AIRPORTS
  ************************************************************/
 
 function fitResultAirports(
@@ -4224,7 +5863,8 @@ function fitResultAirports(
 
 
   const bounds =
-    resultLayer.getBounds();
+    resultLayer
+      .getBounds();
 
 
   if (
@@ -4241,10 +5881,24 @@ function fitResultAirports(
     {
 
       paddingTopLeft:
-        [415,60],
+        [
+
+          window.innerWidth >
+            767
+              ? 415
+              : 25,
+
+          60
+
+        ],
+
 
       paddingBottomRight:
-        [80,60],
+        [
+          80,
+          60
+        ],
+
 
       maxZoom:
         5
@@ -4256,7 +5910,7 @@ function fitResultAirports(
 
 
 /************************************************************
- * ESCAPE
+ * ESCAPE HTML
  ************************************************************/
 
 function escapeHtml(
@@ -4264,33 +5918,38 @@ function escapeHtml(
 ) {
 
   return String(
-    value ?? ""
+    value ===
+      null ||
+    value ===
+      undefined
+      ? ""
+      : value
   )
 
-    .replace(
-      /&/g,
-      "&amp;"
-    )
+  .replace(
+    /&/g,
+    "&amp;"
+  )
 
-    .replace(
-      /</g,
-      "&lt;"
-    )
+  .replace(
+    /</g,
+    "&lt;"
+  )
 
-    .replace(
-      />/g,
-      "&gt;"
-    )
+  .replace(
+    />/g,
+    "&gt;"
+  )
 
-    .replace(
-      /"/g,
-      "&quot;"
-    )
+  .replace(
+    /"/g,
+    "&quot;"
+  )
 
-    .replace(
-      /'/g,
-      "&#039;"
-    );
+  .replace(
+    /'/g,
+    "&#039;"
+  );
 
 }
 
