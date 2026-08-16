@@ -995,7 +995,7 @@ input {
       minmax(0, .95fr)
       minmax(0, 1.05fr);
 
-    gap: 12px;
+    gap: 18px;
 
     align-items: start;
   }
@@ -1028,15 +1028,21 @@ input {
 
 
   #dateInput {
-    width: 100%;
+    width: calc(100% - 6px);
     min-width: 0;
 
-    height: 30px;
-    min-height: 30px;
+    justify-self: start;
 
-    padding: 2px 5px;
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+
+    padding: 3px 6px;
 
     box-sizing: border-box;
+
+    -webkit-appearance: none;
+    appearance: none;
   }
 
 
@@ -1062,22 +1068,29 @@ input {
     gap: 4px;
 
     min-width: 0;
+
+    justify-items: end;
   }
 
 
   #airportInput {
-    width: 100%;
+    width: calc(100% - 6px);
     min-width: 0;
 
-    height: 30px;
-    min-height: 30px;
+    justify-self: end;
+
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+
+    padding: 3px 6px;
 
     box-sizing: border-box;
   }
 
 
   .query-btn {
-    width: 100%;
+    width: 94px;
 
     min-height: 30px;
     height: 30px;
