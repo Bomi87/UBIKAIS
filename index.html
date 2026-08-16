@@ -3553,253 +3553,177 @@ async function enrichFlightsFromAtsPlan(searchId) {
 
 async function searchFlights() {
 
-  const airport =
-    getQueryAirportCode();
-
-
-  const date =
-    document
-      .getElementById(
-        "dateInput"
-      )
-      .value;
-
+  const airport = getQueryAirportCode();
+  const date = document.getElementById("dateInput").value;
 
   if (!date) {
-
-    alert(
-      "날짜를 선택하세요."
-    );
-
+    alert("날짜를 선택하세요.");
     return;
-
   }
-
 
   if (!airport) {
-
-    alert(
-      "ICAO 4자리 공항코드를 입력하세요."
-    );
-
+    alert("ICAO 4자리 공항코드를 입력하세요.");
     return;
-
   }
 
+  const thisSearchId = ++activeSearchId;
+  userMovedMap = false;
 
-  const thisSearchId =
-    ++activeSearchId;
-
-
-  userMovedMap =
-    false;
-
-
-  const button =
-    document
-      .getElementById(
-        "queryBtn"
-      );
-
-
-  button.disabled =
-    true;
-
-
-  button.textContent =
-    "LOADING";
-
+  const button = document.getElementById("queryBtn");
+  button.disabled = true;
+  button.textContent = "LOADING";
 
   resetResults();
 
+  const listBox = document.getElementById("flightList");
+  listBox.innerHTML = '<div class="empty">UBIKAIS 목록 조회 중...</div>';
 
-  document
-    .getElementById(
-      "flightList"
-    )
-    .innerHTML =
-      '<div class="empty">UBIKAIS 조회 중...</div>';
+  const baseUrl =
+    APPS_SCRIPT_URL +
+    "?mode=flights" +
+    "&direction=" + encodeURIComponent(direction) +
+    "&date=" + encodeURIComponent(date) +
+    "&airport=" + encodeURIComponent(airport);
 
+  function normalizeIncomingRecords(records) {
+    const seen = new Set();
+
+    return (Array.isArray(records) ? records : [])
+      .filter(function(flight) {
+        const key = getFlightUniqueKey(flight);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  }
 
   try {
 
-    const url =
-      APPS_SCRIPT_URL +
+    /********************************************************
+     * PHASE 1 — FAST LIST
+     ********************************************************/
 
-      "?mode=flights" +
-
-      "&direction=" +
-      encodeURIComponent(
-        direction
-      ) +
-
-      "&date=" +
-      encodeURIComponent(
-        date
-      ) +
-
-      "&airport=" +
-      encodeURIComponent(
-        airport
-      );
-
-
-    const response =
+    const fastResponse =
       await fetch(
-        url,
-        {
-          cache:
-            "no-store"
-        }
+        baseUrl + "&fast=1",
+        { cache: "no-store" }
       );
 
-
-    if (
-      !response.ok
-    ) {
-
-      throw new Error(
-        "Backend HTTP " +
-        response.status
-      );
-
+    if (!fastResponse.ok) {
+      throw new Error("Backend HTTP " + fastResponse.status);
     }
 
+    const fastData = await fastResponse.json();
 
-    const data =
-      await response.json();
+    if (thisSearchId !== activeSearchId) return;
 
-
-    if (
-      thisSearchId !==
-      activeSearchId
-    ) {
-
-      return;
-
+    if (fastData.status !== "success") {
+      throw new Error(fastData.msg || "UBIKAIS 조회 실패");
     }
-
-
-    if (
-      data.status !==
-      "success"
-    ) {
-
-      throw new Error(
-        data.msg ||
-        "UBIKAIS 조회 실패"
-      );
-
-    }
-
-
-    const records =
-      Array.isArray(
-        data.records
-      )
-        ? data.records
-        : [];
-
-
-    const seen =
-      new Set();
-
 
     allFlights =
-      records.filter(
-        function(flight) {
-
-          const key =
-            getFlightUniqueKey(
-              flight
-            );
-
-
-          if (
-            seen.has(
-              key
-            )
-          ) {
-
-            return false;
-
-          }
-
-
-          seen.add(
-            key
-          );
-
-
-          return true;
-
-        }
+      normalizeIncomingRecords(
+        fastData.records
       );
-
 
     visibleFlights =
       allFlights.slice();
 
-
     renderFlightList();
 
-
     /*
-     * KML/cache는 즉시.
-     * 누락 공항 fallback은 background.
+     * V35 PHASE 1:
+     * UBIKAIS 목록 기준으로 지도도 즉시 표시한다.
+     *
+     * 이후 ATS PLAN / 실제 CHG 검토가 끝나면
+     * PHASE 2에서 같은 지도 marker/badge를 즉시 다시 계산하여
+     * 수정된 DEP/ARR를 실시간 반영한다.
+     *
+     * ARRIVAL / DEPARTURE 공통 적용.
      */
-
     renderResultAirportsFast(
       thisSearchId
     );
+
+    button.disabled = false;
+    button.textContent = "SEARCH";
+
+
+    /********************************************************
+     * PHASE 2 — ATS FINAL
+     ********************************************************/
+
+    const finalResponse =
+      await fetch(
+        baseUrl,
+        { cache: "no-store" }
+      );
+
+    if (!finalResponse.ok) {
+      throw new Error("ATS Backend HTTP " + finalResponse.status);
+    }
+
+    const finalData =
+      await finalResponse.json();
+
+    if (thisSearchId !== activeSearchId) return;
+
+    if (finalData.status !== "success") {
+      throw new Error(finalData.msg || "ATS PLAN 조회 실패");
+    }
+
+    allFlights =
+      normalizeIncomingRecords(
+        finalData.records
+      );
+
+    visibleFlights =
+      allFlights.slice();
+
+    renderFlightList();
+
     /*
-     * V33:
-     * ATS PLAN DEP/ARR is already batch-resolved by the backend.
-     * No per-flight background Apps Script calls are started here.
+     * V35 PHASE 2:
+     * ATS Item 13/16 + 실제 CHG 검토가 완료된 최종 allFlights로
+     * 지도 marker / badge를 즉시 다시 계산한다.
+     *
+     * 예:
+     * UBIKAIS  RKSI → KLAX
+     * ATS PLAN RKSI → VHHH
+     *
+     * PHASE 1에서는 KLAX에 포함될 수 있지만,
+     * ATS 검토 완료 즉시 KLAX count에서 빠지고
+     * VHHH marker/count에 반영된다.
+     *
+     * ARRIVAL / DEPARTURE 모두 동일 로직.
      */
-
-
-  } catch (
-    err
-  ) {
-
-    console.error(
-      err
+    renderResultAirportsFast(
+      thisSearchId
     );
 
+  } catch (err) {
 
-    document
-      .getElementById(
-        "flightList"
-      )
-      .innerHTML =
+    console.error(err);
+
+    if (thisSearchId !== activeSearchId) return;
+
+    if (!allFlights.length) {
+      listBox.innerHTML =
         '<div class="empty">' +
-        escapeHtml(
-          err.message
-        ) +
+        escapeHtml(err.message) +
         '</div>';
-
+    }
 
   } finally {
 
-    if (
-      thisSearchId ===
-      activeSearchId
-    ) {
-
-      button.disabled =
-        false;
-
-
-      button.textContent =
-        "SEARCH";
-
+    if (thisSearchId === activeSearchId) {
+      button.disabled = false;
+      button.textContent = "SEARCH";
     }
 
   }
 
 }
-
 
 /************************************************************
  * RESET
@@ -4724,6 +4648,54 @@ function createSearchAirportMarker(
 }
 
 
+
+async function resolveAirportForManualSearch(code) {
+  code = normalizeIcao(code);
+  if (!code) return null;
+
+  let local = getAirportLocalOnly(code);
+  if (isValidAirportCoordinate(local)) return local;
+
+  /*
+   * Empty/stale local KML only:
+   * try one quick KML refresh, but never wait indefinitely.
+   */
+  try {
+    await Promise.race([
+      refreshAirportKml(),
+      new Promise(function(resolve) {
+        setTimeout(resolve, 1200);
+      })
+    ]);
+  } catch (_) {}
+
+  local = getAirportLocalOnly(code);
+  if (isValidAirportCoordinate(local)) return local;
+
+  return await geocodeAirportByBackendFallback(code);
+}
+
+
+function getManualSearchLatLng(airport) {
+  if (!isValidAirportCoordinate(airport)) return null;
+
+  const lat = Number(airport.lat);
+  let lon = Number(airport.lon);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+
+  const ref =
+    map
+      ? Number(map.getCenter().lng)
+      : lon;
+
+  while (lon - ref > 180) lon -= 360;
+  while (lon - ref < -180) lon += 360;
+
+  return [lat, lon];
+}
+
+
 /************************************************************
  * BOTTOM-RIGHT AIRPORT SEARCH
  *
@@ -4746,7 +4718,7 @@ async function searchAirportOnMap() {
   button.textContent = "...";
 
   try {
-    const airport = await resolveAirportForFlightMap(code);
+    const airport = await resolveAirportForManualSearch(code);
 
     if (!isValidAirportCoordinate(airport)) {
       alert(code + " 공항 위치를 찾을 수 없습니다.");
@@ -4755,14 +4727,10 @@ async function searchAirportOnMap() {
 
     searchLayer.clearLayers();
 
-    const queryCode = getQueryAirportCode();
-    const queryAirport = getAirportLocalOnly(queryCode);
-    const referenceLon =
-      isValidAirportCoordinate(queryAirport)
-        ? Number(queryAirport.lon)
-        : map.getCenter().lng;
-
-    const latlng = getRenderLatLng(airport, referenceLon, code);
+    const latlng =
+      getManualSearchLatLng(
+        airport
+      );
     if (!latlng) {
       alert(code + " 공항 좌표가 올바르지 않습니다.");
       return;
