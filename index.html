@@ -842,6 +842,37 @@ input {
 
 
 /************************************************************
+ * MANUAL SEARCH POPUP
+ ************************************************************/
+
+.manual-popup {
+  min-width: 240px;
+  max-width: 320px;
+
+  color: #111827;
+
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+
+.manual-popup-code {
+  margin-bottom: 3px;
+
+  font-size: 14px;
+  font-weight: 900;
+}
+
+
+.manual-popup-address {
+  color: #374151;
+
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+
+/************************************************************
  * MAP SEARCH BOX
  ************************************************************/
 
@@ -980,16 +1011,15 @@ input {
       >
 
       <script>
+      // DATE_DEFAULT_IMMEDIATE
       (function () {
         const input = document.getElementById("dateInput");
         if (!input) return;
-
         const now = new Date();
-        const yyyy = now.getFullYear();
-        const mm = String(now.getMonth() + 1).padStart(2, "0");
-        const dd = String(now.getDate()).padStart(2, "0");
-
-        input.value = `${yyyy}-${mm}-${dd}`;
+        input.value =
+          now.getFullYear() + "-" +
+          String(now.getMonth() + 1).padStart(2, "0") + "-" +
+          String(now.getDate()).padStart(2, "0");
       })();
       </script>
 
@@ -1242,11 +1272,11 @@ const NOMINATIM_URL =
  ************************************************************/
 
 const KML_STORAGE_KEY =
-  "UBIKAIS_ACJ_NDB_AIRPORTS_V20";
+  "UBIKAIS_ACJ_NDB_AIRPORTS_V18";
 
 
 const FALLBACK_STORAGE_KEY =
-  "UBIKAIS_AIRPORT_PERMANENT_CACHE_V20";
+  "UBIKAIS_AIRPORT_PERMANENT_CACHE_V21";
 
 
 /************************************************************
@@ -1751,6 +1781,18 @@ function saveAirportToPermanentCache(
   }
 
 
+  /*
+   * 기존 cache에 주소가 있는데
+   * 새 데이터에는 주소가 없으면 기존 주소 보존.
+   */
+
+  const old =
+    fallbackAirportCache[
+      code
+    ] ||
+    {};
+
+
   fallbackAirportCache[
     code
   ] = {
@@ -1763,6 +1805,14 @@ function saveAirportToPermanentCache(
 
     lon:
       lon,
+
+    displayName:
+      String(
+        airport.displayName ||
+        old.displayName ||
+        ""
+      )
+        .trim(),
 
     source:
       String(
@@ -2303,50 +2353,61 @@ function getAirportLocalOnly(
       code
     );
 
-
   if (!code) {
-
     return null;
-
   }
-
 
   /**********************************************************
    * 1. KML
    **********************************************************/
 
-  if (
+  const kmlAirport =
     airportDb[
-      code
-    ]
-  ) {
-
-    return airportDb[
       code
     ];
 
+  if (
+    kmlAirport &&
+    Number.isFinite(
+      Number(
+        kmlAirport.lat
+      )
+    ) &&
+    Number.isFinite(
+      Number(
+        kmlAirport.lon
+      )
+    )
+  ) {
+    return kmlAirport;
   }
-
 
   /**********************************************************
    * 2. PERMANENT CACHE
    **********************************************************/
 
-  if (
+  const cached =
     fallbackAirportCache[
-      code
-    ]
-  ) {
-
-    return fallbackAirportCache[
       code
     ];
 
+  if (
+    cached &&
+    Number.isFinite(
+      Number(
+        cached.lat
+      )
+    ) &&
+    Number.isFinite(
+      Number(
+        cached.lon
+      )
+    )
+  ) {
+    return cached;
   }
 
-
   return null;
-
 }
 
 
@@ -2441,28 +2502,6 @@ async function lookupAirportDataApi(
             data.status
           ) !==
             200
-        ) {
-
-          return null;
-
-        }
-
-
-        const returnedIcao =
-          String(
-            data.icao ||
-            ""
-          )
-          .trim()
-          .toUpperCase();
-
-
-        /*
-         * Airport-Data 결과가 요청 ICAO와 정확히 일치할 때만 사용.
-         */
-        if (
-          returnedIcao !==
-          code
         ) {
 
           return null;
@@ -2578,7 +2617,7 @@ async function lookupAirportDataApi(
  *
  * q = ICAO + " airport"
  *
- * 좌표만 사용
+ * 좌표 + display_name
  ************************************************************/
 
 async function geocodeAirportByNominatim(
@@ -2712,6 +2751,13 @@ async function geocodeAirportByNominatim(
           lon:
             lon,
 
+          displayName:
+            String(
+              item.display_name ||
+              ""
+            )
+              .trim(),
+
           source:
             "Nominatim"
 
@@ -2801,16 +2847,33 @@ async function resolveAirportForFlightMap(
    * 2. PERMANENT CACHE
    **********************************************************/
 
-  if (
+  const cached =
     fallbackAirportCache[
-      code
-    ]
-  ) {
-
-    return fallbackAirportCache[
       code
     ];
 
+  if (
+    cached &&
+    Number.isFinite(
+      Number(
+        cached.lat
+      )
+    ) &&
+    Number.isFinite(
+      Number(
+        cached.lon
+      )
+    )
+  ) {
+    return cached;
+  }
+
+  if (cached) {
+    delete fallbackAirportCache[code];
+    saveJsonStorage(
+      FALLBACK_STORAGE_KEY,
+      fallbackAirportCache
+    );
   }
 
 
@@ -2883,6 +2946,31 @@ async function resolveAirportForFlightMap(
 
 
   return null;
+
+}
+
+
+/************************************************************
+ * MANUAL SEARCH
+ *
+ * 오른쪽 하단 AIRPORT 전용.
+ *
+ * ARTCC 방식대로 Nominatim을 사용.
+ *
+ * KML 좌표 여부와 관계 없이 Nominatim에서
+ * display_name을 받아와야 주소 popup을 만들 수 있음.
+ *
+ * 단, 이전에 Nominatim displayName까지 cache되어 있으면
+ * API 재호출 없이 cache 사용.
+ ************************************************************/
+
+async function resolveAirportForManualSearch(
+  code
+) {
+
+  return resolveAirportForFlightMap(
+    code
+  );
 
 }
 
@@ -4625,17 +4713,74 @@ function createSearchAirportMarker(
 
 
 /************************************************************
+ * MANUAL POPUP
+ ************************************************************/
+
+function buildManualAirportPopup(
+  code,
+  airport
+) {
+
+  let html =
+    `
+
+    <div class="manual-popup">
+
+      <div class="manual-popup-code">
+
+        ${escapeHtml(
+          code
+        )}
+
+      </div>
+
+    `;
+
+
+  if (
+    airport &&
+    airport.displayName
+  ) {
+
+    html +=
+      `
+
+      <div class="manual-popup-address">
+
+        ${escapeHtml(
+          airport.displayName
+        )}
+
+      </div>
+
+      `;
+
+  }
+
+
+  html +=
+    `
+
+    </div>
+
+    `;
+
+
+  return html;
+
+}
+
+
+/************************************************************
  * BOTTOM-RIGHT AIRPORT SEARCH
  *
- * 공항 좌표 검색 순서:
+ * ARTCC 방식:
  *
- * 1. ACJ_NDB.kml
- * 2. permanent localStorage cache
- * 3. Airport-Data ICAO API
- * 4. Nominatim
+ * Nominatim "XXXX airport"
+ * → lat/lon/display_name
+ * → ▼ marker
+ * → popup
  *
- * 주소/공항명 popup은 표시하지 않음.
- * ICAO + ▼ marker만 표시.
  * UBIKAIS 리스트는 변경 안 함.
  ************************************************************/
 
@@ -4643,41 +4788,27 @@ async function searchAirportOnMap() {
 
   const code =
     normalizeIcao(
-
       document
         .getElementById(
           "mapAirportInput"
         )
         .value
-
     );
 
-
   if (!code) {
-
     alert(
       "ICAO 4자리 코드를 입력하세요."
     );
-
     return;
-
   }
 
-
   const button =
-    document
-      .getElementById(
-        "mapAirportBtn"
-      );
+    document.getElementById(
+      "mapAirportBtn"
+    );
 
-
-  button.disabled =
-    true;
-
-
-  button.textContent =
-    "...";
-
+  button.disabled = true;
+  button.textContent = "...";
 
   try {
 
@@ -4685,7 +4816,6 @@ async function searchAirportOnMap() {
       await resolveAirportForFlightMap(
         code
       );
-
 
     if (
       !airport ||
@@ -4700,29 +4830,24 @@ async function searchAirportOnMap() {
         )
       )
     ) {
-
       alert(
         code +
         " 공항 위치를 찾을 수 없습니다."
       );
-
       return;
-
     }
 
-
-    searchLayer
-      .clearLayers();
-
+    searchLayer.clearLayers();
 
     const latlng =
       getRenderLatLng(
         airport,
-        map
-          .getCenter()
-          .lng
+        map.getCenter().lng
       );
 
+    if (!latlng) {
+      return;
+    }
 
     const marker =
       createSearchAirportMarker(
@@ -4730,46 +4855,41 @@ async function searchAirportOnMap() {
         latlng
       );
 
-
     marker.addTo(
       searchLayer
     );
-
 
     map.setView(
       latlng,
       10,
       {
-        animate:
-          false
+        animate: false
       }
     );
 
-
-  } catch (
-    err
-  ) {
-
-    console.error(
-      "Manual airport search failed:",
-      err
+    console.log(
+      "[AIRPORT]",
+      code,
+      "source:",
+      airport.source || "unknown"
     );
 
+  } catch (err) {
+
+    console.error(
+      "Airport search failed:",
+      err
+    );
 
     alert(
       code +
       " 공항 검색 실패"
     );
 
-
   } finally {
 
-    button.disabled =
-      false;
-
-
-    button.textContent =
-      "AIRPORT";
+    button.disabled = false;
+    button.textContent = "AIRPORT";
 
   }
 
