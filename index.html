@@ -4713,7 +4713,9 @@ function addResultAirportMarker(
       offset:
         [
           0,
-          12
+          Math.ceil(
+            size / 2
+          ) + 1
         ],
 
       className:
@@ -4796,15 +4798,15 @@ function makeAirportIcon(
 
     iconSize:
       [
-        40,
-        40
+        size,
+        size
       ],
 
 
     iconAnchor:
       [
-        20,
-        20
+        size / 2,
+        size / 2
       ]
 
   });
@@ -5494,7 +5496,7 @@ async function drawSelectedLeg(
           offset:
             [
               0,
-              13
+              19
             ],
 
           className:
