@@ -5608,66 +5608,39 @@ async function drawSelectedLeg(
 
 
   [
-    {
-      code:
-        depCode,
-
-      latlng:
-        depLatLng
-    },
-
-    {
-      code:
-        arrCode,
-
-      latlng:
-        arrLatLng
-    }
-
+    depLatLng,
+    arrLatLng
   ]
   .forEach(
-    function(x) {
+    function(latlng) {
 
-      const marker =
-        L.marker(
-          x.latlng,
-          {
-
-            icon:
-              makeAirportIcon(
-                color,
-                0,
-                36
-              )
-
-          }
-        );
-
-
-      marker.bindTooltip(
-        x.code,
+      L.circleMarker(
+        latlng,
         {
 
-          permanent:
-            true,
+          radius:
+            window.innerWidth <= 767
+              ? 12
+              : 15,
 
-          direction:
-            "bottom",
+          color:
+            color,
 
-          offset:
-            [
-              0,
-              19
-            ],
+          weight:
+            3,
 
-          className:
-            "airport-label"
+          opacity:
+            .95,
+
+          fill:
+            false,
+
+          interactive:
+            false
 
         }
-      );
-
-
-      marker.addTo(
+      )
+      .addTo(
         selectedLegLayer
       );
 
