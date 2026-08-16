@@ -3837,9 +3837,10 @@ async function searchFlights() {
      *
      * ARRIVAL / DEPARTURE 모두 동일 로직.
      */
-    renderResultAirportsFast(
-      thisSearchId
-    );
+ renderResultAirportsFast(
+  thisSearchId,
+  true
+);
 
   } catch (err) {
 
@@ -4260,7 +4261,8 @@ function makeAirportFlightMap() {
  ************************************************************/
 
 function renderResultAirportsFast(
-  searchId
+  searchId,
+  preserveViewport = false
 ) {
 
   if (
@@ -4376,15 +4378,15 @@ function renderResultAirportsFast(
    * 기존 공항들은 즉시 fit.
    */
 
-  if (
-    initialLayerCount >
-      0
-  ) {
+ if (
+  initialLayerCount >
+    0 &&
+  !preserveViewport
+) {
 
-    fitResultAirports();
+  fitResultAirports();
 
-  }
-
+}
 
   let fallbackFitDone =
     false;
@@ -4456,12 +4458,13 @@ function renderResultAirportsFast(
          * fallback 결과로 한 번 fit.
          */
 
-        if (
-          initialLayerCount ===
-            0 &&
-          !fallbackFitDone &&
-          !userMovedMap
-        ) {
+    if (
+  initialLayerCount ===
+    0 &&
+  !fallbackFitDone &&
+  !userMovedMap &&
+  !preserveViewport
+) {
 
           fallbackFitDone =
             true;
