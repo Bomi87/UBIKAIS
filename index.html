@@ -123,6 +123,13 @@ input {
 }
 
 
+.mobile-controls-grid,
+.mobile-controls-left,
+.mobile-controls-right {
+  display: contents;
+}
+
+
 .label {
   margin-bottom: 4px;
 
@@ -965,12 +972,13 @@ input {
     width:
       calc(100vw - 16px);
 
-    max-height: 68vh;
+    max-height: 52vh;
+    max-height: 52dvh;
   }
 
 
   .left-header {
-    padding: 8px;
+    padding: 7px 8px 6px;
   }
 
 
@@ -980,8 +988,28 @@ input {
   }
 
 
+  .mobile-controls-grid {
+    display: grid;
+
+    grid-template-columns:
+      minmax(0, .95fr)
+      minmax(0, 1.05fr);
+
+    gap: 7px;
+
+    align-items: end;
+  }
+
+
+  .mobile-controls-left,
+  .mobile-controls-right {
+    display: block;
+    min-width: 0;
+  }
+
+
   .row {
-    margin-bottom: 5px;
+    margin-bottom: 4px;
   }
 
 
@@ -992,46 +1020,66 @@ input {
 
 
   input {
-    padding: 6px 7px;
-    min-height: 34px;
+    padding: 4px 6px;
+    min-height: 30px;
     font-size: 16px !important;
   }
 
 
+  #dateInput {
+    height: 30px;
+    min-height: 30px;
+    padding: 2px 5px;
+  }
+
+
   .mode-row {
-    gap: 5px;
-    margin-bottom: 5px;
+    gap: 4px;
+    margin-bottom: 0;
   }
 
 
   .mode-btn {
-    padding: 7px;
+    min-height: 30px;
+    padding: 5px 3px;
+    font-size: 10px;
   }
 
 
   .query-row {
-    gap: 5px;
+    gap: 4px;
 
     grid-template-columns:
-      1fr 82px;
+      minmax(0, 1fr)
+      62px;
+  }
+
+
+  #airportInput {
+    height: 30px;
+    min-height: 30px;
   }
 
 
   .query-btn {
-    min-height: 34px;
+    min-height: 30px;
+    height: 30px;
+    font-size: 9px;
   }
 
 
   .status-row {
-    margin-top: 5px;
+    margin-top: 4px;
     gap: 5px;
   }
 
 
   #flightList {
     flex: 1 1 auto;
-    min-height: 170px;
-    max-height: 40vh;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
 
@@ -1135,79 +1183,91 @@ input {
     </div>
 
 
-    <div class="row">
+    <div class="mobile-controls-grid">
 
-      <div class="label">
-        Date
+      <div class="mobile-controls-left">
+
+        <div class="row">
+
+          <div class="label">
+            Date
+          </div>
+
+          <input
+            id="dateInput"
+            type="date"
+          >
+
+          <script>
+          (function () {
+            const input = document.getElementById("dateInput");
+            if (!input) return;
+            const now = new Date();
+            input.value =
+              now.getFullYear() + "-" +
+              String(now.getMonth() + 1).padStart(2, "0") + "-" +
+              String(now.getDate()).padStart(2, "0");
+          })();
+          </script>
+
+        </div>
+
+
+        <div class="mode-row">
+
+          <button
+            id="arrBtn"
+            class="mode-btn"
+            type="button"
+          >
+            ARRIVAL
+          </button>
+
+
+          <button
+            id="depBtn"
+            class="mode-btn active"
+            type="button"
+          >
+            DEPARTURE
+          </button>
+
+        </div>
+
       </div>
 
-      <input
-        id="dateInput"
-        type="date"
-      >
 
-      <script>
-      (function () {
-        const input = document.getElementById("dateInput");
-        if (!input) return;
-        const now = new Date();
-        input.value =
-          now.getFullYear() + "-" +
-          String(now.getMonth() + 1).padStart(2, "0") + "-" +
-          String(now.getDate()).padStart(2, "0");
-      })();
-      </script>
+      <div class="mobile-controls-right">
 
-    </div>
+        <div class="row">
+
+          <div class="label">
+            Airport ICAO
+          </div>
 
 
-    <div class="mode-row">
+          <div class="query-row">
 
-      <button
-        id="arrBtn"
-        class="mode-btn"
-        type="button"
-      >
-        ARRIVAL
-      </button>
-
-
-      <button
-        id="depBtn"
-        class="mode-btn active"
-        type="button"
-      >
-        DEPARTURE
-      </button>
-
-    </div>
+            <input
+              id="airportInput"
+              type="text"
+              maxlength="4"
+              value="RKSI"
+              placeholder="RKSI"
+            >
 
 
-    <div class="row">
+            <button
+              id="queryBtn"
+              class="query-btn"
+              type="button"
+            >
+              SEARCH
+            </button>
 
-      <div class="label">
-        Airport ICAO
-      </div>
+          </div>
 
-
-      <div class="query-row">
-
-        <input
-          id="airportInput"
-          type="text"
-          maxlength="4"
-          value="RKSI"
-          placeholder="RKSI"
-        >
-
-
-        <button
-          id="queryBtn"
-          class="query-btn"
-          type="button"
-        >
-          SEARCH
-        </button>
+        </div>
 
       </div>
 
