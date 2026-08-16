@@ -2589,6 +2589,35 @@ function applyAtsPlanIdentity(
 
 function refreshVisibleFlightsAfterAts() {
 
+  if (
+    airportFilter
+  ) {
+
+    visibleFlights =
+      allFlights.filter(
+        function(flight) {
+
+          return (
+            normalizeIcao(
+              flight.dep
+            ) ===
+              airportFilter
+
+            ||
+
+            normalizeIcao(
+              flight.arr
+            ) ===
+              airportFilter
+          );
+
+        }
+      );
+
+    return;
+  }
+
+
   visibleFlights =
     allFlights.slice();
 
@@ -3766,10 +3795,9 @@ async function searchFlights() {
         fastData.records
       );
 
-    visibleFlights =
-      allFlights.slice();
+refreshVisibleFlightsAfterAts();
 
-    renderFlightList();
+renderFlightList();
 
     /*
      * V35 PHASE 1:
@@ -3817,8 +3845,7 @@ async function searchFlights() {
         finalData.records
       );
 
-    visibleFlights =
-      allFlights.slice();
+ refreshVisibleFlightsAfterAts();
 
     renderFlightList();
 
