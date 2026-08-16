@@ -2734,51 +2734,80 @@ async function geocodeAirportByBackendFallback(code) {
  ************************************************************/
 
 async function resolveAirportForFlightMap(code) {
-  code = normalizeIcao(code);
-  if (!code) return null;
 
-  const kmlAirport = airportDb[code];
-  if (isValidAirportCoordinate(kmlAirport)) {
-    console.log("[AIRPORT]", code, "KML");
-    return kmlAirport;
+  code =
+    normalizeIcao(
+      code
+    );
+
+  if (!code) {
+    return null;
   }
 
-  const cached = fallbackAirportCache[code];
-  if (isValidAirportCoordinate(cached)) {
-    console.log("[AIRPORT]", code, "LOCAL CACHE", cached.source || "");
-    return cached;
+
+  /********************************************************
+   * 1) KML / permanent localStorage
+   *    → 즉시 반환
+   ********************************************************/
+
+  const local =
+    getAirportLocalOnly(
+      code
+    );
+
+  if (
+    isValidAirportCoordinate(
+      local
+    )
+  ) {
+    return local;
   }
 
-  if (cached) {
-    delete fallbackAirportCache[code];
-    saveJsonStorage(FALLBACK_STORAGE_KEY, fallbackAirportCache);
-  }
 
-  const airportData = await lookupAirportDataApi(code);
-  if (isValidAirportCoordinate(airportData)) {
-    console.log("[AIRPORT]", code, "AIRPORT-DATA");
-    return airportData;
-  }
+  /********************************************************
+   * 2) Apps Script fallback 1회
+   *
+   * V27 SPEED-FIRST:
+   * Browser-side Airport-Data 직접 호출을 제거한다.
+   *
+   * Backend에서:
+   *   existing Script Properties cache
+   *   → Airport-Data
+   *   → Nominatim
+   *
+   * 순서로 처리한다.
+   ********************************************************/
 
-  const backendAirport = await geocodeAirportByBackendFallback(code);
-  if (isValidAirportCoordinate(backendAirport)) {
-    saveAirportToPermanentCache(backendAirport);
-    console.log("[AIRPORT]", code, "BACKEND FALLBACK", backendAirport.source || "");
+  const backendAirport =
+    await geocodeAirportByBackendFallback(
+      code
+    );
+
+  if (
+    isValidAirportCoordinate(
+      backendAirport
+    )
+  ) {
+
+    saveAirportToPermanentCache(
+      backendAirport
+    );
+
+    console.log(
+      "[AIRPORT]",
+      code,
+      "BACKEND FALLBACK",
+      backendAirport.source ||
+        ""
+    );
+
     return backendAirport;
+
   }
 
-  console.warn("[AIRPORT]", code, "NOT FOUND");
+
   return null;
 }
-
-function isValidAirportCoordinate(airport) {
-  return Boolean(
-    airport &&
-    Number.isFinite(Number(airport.lat)) &&
-    Number.isFinite(Number(airport.lon))
-  );
-}
-
 
 /************************************************************
  * NUMBER
