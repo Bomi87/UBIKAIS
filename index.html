@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+
 <meta charset="utf-8">
 
 <meta
@@ -10,6 +11,7 @@
 
 <title>UBIKAIS ATS Flight Plan Map</title>
 
+
 <link
   rel="stylesheet"
   href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -18,6 +20,7 @@
 <script
   src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
 </script>
+
 
 <style>
 
@@ -41,9 +44,11 @@ body {
     sans-serif;
 }
 
+
 * {
   box-sizing: border-box;
 }
+
 
 button,
 input {
@@ -813,7 +818,8 @@ input {
   background:
     #111827 !important;
 
-  border: 0 !important;
+  border:
+    0 !important;
 
   border-radius:
     5px !important;
@@ -857,7 +863,7 @@ input {
 
 
 .search-popup-name {
-  margin-bottom: 5px;
+  margin-bottom: 4px;
 
   color: #111827;
 
@@ -865,6 +871,16 @@ input {
   line-height: 1.35;
 
   font-weight: 850;
+}
+
+
+.search-popup-location {
+  margin-bottom: 2px;
+
+  color: #4b5563;
+
+  font-size: 10px;
+  line-height: 1.4;
 }
 
 
@@ -877,19 +893,8 @@ input {
 }
 
 
-.search-popup-source {
-  margin-top: 6px;
-
-  color: #9ca3af;
-
-  font-size: 8px;
-
-  line-height: 1.2;
-}
-
-
 /************************************************************
- * MAP SEARCH
+ * MAP AIRPORT SEARCH
  ************************************************************/
 
 .map-search {
@@ -994,12 +999,15 @@ input {
 }
 
 </style>
+
 </head>
 
 
 <body>
 
+
 <div id="map"></div>
+
 
 
 <!-- ======================================================
@@ -1131,6 +1139,7 @@ input {
         class="detail-leg"
       ></div>
 
+
       <div
         id="detailFlight"
         class="detail-flight"
@@ -1142,6 +1151,7 @@ input {
     <button
       id="closeDetail"
       class="close-btn"
+      type="button"
     >
       ×
     </button>
@@ -1159,14 +1169,17 @@ input {
           ROUTE
         </div>
 
+
         <button
           id="copyRouteBtn"
           class="copy-btn"
+          type="button"
         >
           COPY
         </button>
 
       </div>
+
 
       <div
         id="routeBox"
@@ -1184,14 +1197,17 @@ input {
           ATS ORIGINAL MESSAGE
         </div>
 
+
         <button
           id="copyOriginalBtn"
           class="copy-btn"
+          type="button"
         >
           COPY
         </button>
 
       </div>
+
 
       <div
         id="originalBox"
@@ -1218,8 +1234,10 @@ input {
     placeholder="ICAO"
   >
 
+
   <button
     id="mapAirportBtn"
+    type="button"
   >
     AIRPORT
   </button>
@@ -1239,7 +1257,7 @@ const APPS_SCRIPT_URL =
 
 
 /************************************************************
- * LOCAL AIRPORT FILES
+ * LOCAL AIRPORT DATA
  ************************************************************/
 
 const NDB_KML_URL =
@@ -1251,46 +1269,35 @@ const AIRPORT_INFO_URL =
 
 
 /************************************************************
- * FALLBACK API
+ * SINGLE-AIRPORT FALLBACK API
  *
- * OurAirports 전체 CSV를 직접 브라우저에서 읽는다.
+ * ★ 전체 CSV 다운로드 안 함.
  *
- * airport_info.json 또는 KML에 없는 공항도
- * 여기서 ICAO / NAME / COUNTRY / LAT / LON 확보 가능.
+ * MMTO 검색:
  *
- * CSV:
- * https://davidmegginson.github.io/ourairports-data/airports.csv
+ * https://airport-data.com/api/ap_info.json?icao=MMTO
  *
- * Country:
- * https://davidmegginson.github.io/ourairports-data/countries.csv
+ * 딱 MMTO 하나만 조회.
  ************************************************************/
 
-const OURAIRPORTS_AIRPORTS_URL =
-  "https://davidmegginson.github.io/ourairports-data/airports.csv";
-
-
-const OURAIRPORTS_COUNTRIES_URL =
-  "https://davidmegginson.github.io/ourairports-data/countries.csv";
+const AIRPORT_FALLBACK_API =
+  "https://airport-data.com/api/ap_info.json?icao=";
 
 
 /************************************************************
- * STORAGE
+ * LOCAL STORAGE
  ************************************************************/
 
 const KML_STORAGE_KEY =
-  "UBIKAIS_AIRPORT_COORDS_V13";
+  "UBIKAIS_AIRPORT_COORDS_V14";
 
 
 const AIRPORT_INFO_STORAGE_KEY =
-  "UBIKAIS_AIRPORT_INFO_V13";
+  "UBIKAIS_AIRPORT_INFO_V14";
 
 
-const FALLBACK_AIRPORT_STORAGE_KEY =
-  "UBIKAIS_FALLBACK_AIRPORTS_V13";
-
-
-const COUNTRY_STORAGE_KEY =
-  "UBIKAIS_COUNTRIES_V13";
+const FALLBACK_STORAGE_KEY =
+  "UBIKAIS_AIRPORT_API_CACHE_V14";
 
 
 /************************************************************
@@ -1351,7 +1358,7 @@ const COUNTRY_COLORS = {
 
 
 /************************************************************
- * AIRLINES
+ * AIRLINE MAP
  ************************************************************/
 
 const AIRLINE_MAP = {
@@ -1492,7 +1499,7 @@ let userMovedMap =
 
 
 /************************************************************
- * DATABASES
+ * AIRPORT DATABASE
  ************************************************************/
 
 let airportDb =
@@ -1507,23 +1514,34 @@ let airportInfoDb =
   );
 
 
-let fallbackAirportDb =
-  loadJsonStorage(
-    FALLBACK_AIRPORT_STORAGE_KEY
-  );
+/*
+ * 중요:
+ *
+ * 여기는 전체 공항 DB가 아님.
+ *
+ * 사용자가 실제로 fallback 검색한 공항만 쌓인다.
+ *
+ * 예:
+ *
+ * {
+ *   "MMTO": {...},
+ *   "KEWR": {...}
+ * }
+ */
 
-
-let countryDb =
+let fallbackAirportCache =
   loadJsonStorage(
-    COUNTRY_STORAGE_KEY
+    FALLBACK_STORAGE_KEY
   );
 
 
 /*
- * fallback 전체 CSV는 필요할 때만 다운로드.
+ * 같은 공항을 동시에 여러 군데서 요청할 때
+ * API 중복호출 방지.
  */
-let ourAirportsLoadPromise =
-  null;
+
+const pendingAirportLookups =
+  {};
 
 
 /************************************************************
@@ -1547,7 +1565,10 @@ const map =
     }
   )
   .setView(
-    [36,128],
+    [
+      36,
+      128
+    ],
     5
   );
 
@@ -1584,21 +1605,27 @@ L.control
 
 const resultLayer =
   L.featureGroup()
-    .addTo(map);
+    .addTo(
+      map
+    );
 
 
 const selectedLegLayer =
   L.featureGroup()
-    .addTo(map);
+    .addTo(
+      map
+    );
 
 
 const searchLayer =
   L.featureGroup()
-    .addTo(map);
+    .addTo(
+      map
+    );
 
 
 /************************************************************
- * USER MAP MOVEMENT
+ * USER MOVEMENT
  ************************************************************/
 
 map.on(
@@ -1637,8 +1664,10 @@ document.addEventListener(
 
 
     /*
-     * KML background refresh
+     * KML cache가 이미 있으면 즉시 사용.
+     * 최신본은 background refresh.
      */
+
     refreshAirportKml()
       .catch(
         function(err) {
@@ -1653,8 +1682,9 @@ document.addEventListener(
 
 
     /*
-     * airport_info.json background refresh
+     * airport_info.json도 동일.
      */
+
     refreshAirportInfo()
       .catch(
         function(err) {
@@ -1694,21 +1724,23 @@ function loadJsonStorage(
     }
 
 
-    const parsed =
+    const value =
       JSON.parse(
         raw
       );
 
 
     return (
-      parsed &&
-      typeof parsed ===
+      value &&
+      typeof value ===
         "object"
     )
-      ? parsed
+      ? value
       : {};
 
-  } catch (err) {
+  } catch (
+    err
+  ) {
 
     return {};
 
@@ -1731,7 +1763,16 @@ function saveJsonStorage(
       )
     );
 
-  } catch (err) {}
+  } catch (
+    err
+  ) {
+
+    console.warn(
+      "localStorage save failed:",
+      key
+    );
+
+  }
 
 }
 
@@ -1991,7 +2032,7 @@ function setDirection(
 
 async function refreshAirportKml() {
 
-  const response =
+  const res =
     await fetch(
       NDB_KML_URL,
       {
@@ -2001,18 +2042,20 @@ async function refreshAirportKml() {
     );
 
 
-  if (!response.ok) {
+  if (
+    !res.ok
+  ) {
 
     throw new Error(
       "KML HTTP " +
-      response.status
+      res.status
     );
 
   }
 
 
   const text =
-    await response.text();
+    await res.text();
 
 
   const db =
@@ -2085,13 +2128,13 @@ function buildAirportDbFromKml(
       }
 
 
-      const coordNode =
+      const coordinates =
         point.getElementsByTagName(
           "coordinates"
         )[0];
 
 
-      if (!coordNode) {
+      if (!coordinates) {
 
         return;
 
@@ -2134,7 +2177,7 @@ function buildAirportDbFromKml(
 
       const coordText =
         String(
-          coordNode.textContent ||
+          coordinates.textContent ||
           ""
         )
         .trim()
@@ -2147,15 +2190,6 @@ function buildAirportDbFromKml(
         coordText.split(
           ","
         );
-
-
-      if (
-        parts.length < 2
-      ) {
-
-        return;
-
-      }
 
 
       const lon =
@@ -2217,7 +2251,7 @@ function buildAirportDbFromKml(
 
 async function refreshAirportInfo() {
 
-  const response =
+  const res =
     await fetch(
       AIRPORT_INFO_URL,
       {
@@ -2228,19 +2262,19 @@ async function refreshAirportInfo() {
 
 
   if (
-    !response.ok
+    !res.ok
   ) {
 
     throw new Error(
       "airport_info.json HTTP " +
-      response.status
+      res.status
     );
 
   }
 
 
   const data =
-    await response.json();
+    await res.json();
 
 
   if (
@@ -2269,584 +2303,16 @@ async function refreshAirportInfo() {
 
 
 /************************************************************
- * CSV PARSER
+ * SINGLE ICAO API LOOKUP
  *
- * quoted comma 지원.
- ************************************************************/
-
-function parseCsvLine(
-  line
-) {
-
-  const result =
-    [];
-
-
-  let current =
-    "";
-
-
-  let quoted =
-    false;
-
-
-  for (
-    let i = 0;
-    i < line.length;
-    i++
-  ) {
-
-    const ch =
-      line[i];
-
-
-    if (
-      ch === '"'
-    ) {
-
-      if (
-        quoted &&
-        line[
-          i + 1
-        ] === '"'
-      ) {
-
-        current += '"';
-
-        i++;
-
-      } else {
-
-        quoted =
-          !quoted;
-
-      }
-
-    } else if (
-      ch === "," &&
-      !quoted
-    ) {
-
-      result.push(
-        current
-      );
-
-
-      current =
-        "";
-
-    } else {
-
-      current +=
-        ch;
-
-    }
-
-  }
-
-
-  result.push(
-    current
-  );
-
-
-  return result;
-
-}
-
-
-/************************************************************
- * COUNTRIES CSV
- ************************************************************/
-
-async function loadCountriesFromOurAirports() {
-
-  if (
-    Object.keys(
-      countryDb
-    ).length
-  ) {
-
-    return;
-
-  }
-
-
-  const response =
-    await fetch(
-      OURAIRPORTS_COUNTRIES_URL,
-      {
-        cache:
-          "force-cache"
-      }
-    );
-
-
-  if (
-    !response.ok
-  ) {
-
-    throw new Error(
-      "countries.csv HTTP " +
-      response.status
-    );
-
-  }
-
-
-  const text =
-    await response.text();
-
-
-  const lines =
-    text
-      .replace(
-        /^\uFEFF/,
-        ""
-      )
-      .split(
-        /\r?\n/
-      );
-
-
-  if (
-    lines.length < 2
-  ) {
-
-    return;
-
-  }
-
-
-  const headers =
-    parseCsvLine(
-      lines[0]
-    );
-
-
-  const codeIndex =
-    headers.indexOf(
-      "code"
-    );
-
-
-  const nameIndex =
-    headers.indexOf(
-      "name"
-    );
-
-
-  const result =
-    {};
-
-
-  for (
-    let i = 1;
-    i < lines.length;
-    i++
-  ) {
-
-    if (
-      !lines[i]
-    ) {
-
-      continue;
-
-    }
-
-
-    const row =
-      parseCsvLine(
-        lines[i]
-      );
-
-
-    const code =
-      String(
-        row[
-          codeIndex
-        ] ||
-        ""
-      )
-        .trim()
-        .toUpperCase();
-
-
-    const name =
-      String(
-        row[
-          nameIndex
-        ] ||
-        ""
-      )
-        .trim();
-
-
-    if (
-      code &&
-      name
-    ) {
-
-      result[
-        code
-      ] =
-        name;
-
-    }
-
-  }
-
-
-  countryDb =
-    result;
-
-
-  saveJsonStorage(
-    COUNTRY_STORAGE_KEY,
-    result
-  );
-
-}
-
-
-/************************************************************
- * LOAD OURAIRPORTS
+ * 중요:
  *
- * 이 함수는 로컬 DB에서 공항을 못 찾았을 때만 호출됨.
+ * MMTO를 요청하면 MMTO 하나만 요청.
  *
- * 최초 fallback 때 airports.csv를 1회 다운로드하고
- * ICAO code가 있는 공항을 브라우저 캐시에 저장.
+ * airports.csv 다운로드 없음.
  ************************************************************/
 
-async function ensureOurAirportsLoaded() {
-
-  if (
-    ourAirportsLoadPromise
-  ) {
-
-    return ourAirportsLoadPromise;
-
-  }
-
-
-  ourAirportsLoadPromise =
-    (async function() {
-
-      await loadCountriesFromOurAirports()
-        .catch(
-          function(err) {
-
-            console.warn(
-              "Country DB load failed:",
-              err
-            );
-
-          }
-        );
-
-
-      const response =
-        await fetch(
-          OURAIRPORTS_AIRPORTS_URL,
-          {
-            cache:
-              "force-cache"
-          }
-        );
-
-
-      if (
-        !response.ok
-      ) {
-
-        throw new Error(
-          "airports.csv HTTP " +
-          response.status
-        );
-
-      }
-
-
-      const text =
-        await response.text();
-
-
-      const lines =
-        text
-          .replace(
-            /^\uFEFF/,
-            ""
-          )
-          .split(
-            /\r?\n/
-          );
-
-
-      if (
-        lines.length < 2
-      ) {
-
-        return;
-
-      }
-
-
-      const headers =
-        parseCsvLine(
-          lines[0]
-        );
-
-
-      const identIndex =
-        headers.indexOf(
-          "ident"
-        );
-
-
-      const icaoIndex =
-        headers.indexOf(
-          "icao_code"
-        );
-
-
-      const nameIndex =
-        headers.indexOf(
-          "name"
-        );
-
-
-      const latIndex =
-        headers.indexOf(
-          "latitude_deg"
-        );
-
-
-      const lonIndex =
-        headers.indexOf(
-          "longitude_deg"
-        );
-
-
-      const countryIndex =
-        headers.indexOf(
-          "iso_country"
-        );
-
-
-      const result =
-        {};
-
-
-      for (
-        let i = 1;
-        i < lines.length;
-        i++
-      ) {
-
-        const line =
-          lines[i];
-
-
-        if (!line) {
-
-          continue;
-
-        }
-
-
-        const row =
-          parseCsvLine(
-            line
-          );
-
-
-        let code =
-          String(
-            row[
-              icaoIndex
-            ] ||
-            ""
-          )
-            .trim()
-            .toUpperCase();
-
-
-        /*
-         * 혹시 icao_code가 비어 있고 ident가 ICAO 4자리면 사용.
-         */
-        if (
-          !/^[A-Z]{4}$/.test(
-            code
-          )
-        ) {
-
-          const ident =
-            String(
-              row[
-                identIndex
-              ] ||
-              ""
-            )
-              .trim()
-              .toUpperCase();
-
-
-          if (
-            /^[A-Z]{4}$/.test(
-              ident
-            )
-          ) {
-
-            code =
-              ident;
-
-          }
-
-        }
-
-
-        if (
-          !/^[A-Z]{4}$/.test(
-            code
-          )
-        ) {
-
-          continue;
-
-        }
-
-
-        const lat =
-          Number(
-            row[
-              latIndex
-            ]
-          );
-
-
-        const lon =
-          Number(
-            row[
-              lonIndex
-            ]
-          );
-
-
-        if (
-          !Number.isFinite(
-            lat
-          ) ||
-          !Number.isFinite(
-            lon
-          )
-        ) {
-
-          continue;
-
-        }
-
-
-        const name =
-          String(
-            row[
-              nameIndex
-            ] ||
-            ""
-          )
-            .trim();
-
-
-        const isoCountry =
-          String(
-            row[
-              countryIndex
-            ] ||
-            ""
-          )
-            .trim()
-            .toUpperCase();
-
-
-        result[
-          code
-        ] = {
-
-          icao:
-            code,
-
-          lat:
-            lat,
-
-          lon:
-            lon,
-
-          name:
-            name,
-
-          country:
-            countryDb[
-              isoCountry
-            ] ||
-            isoCountry,
-
-          isoCountry:
-            isoCountry,
-
-          source:
-            "OurAirports"
-
-        };
-
-      }
-
-
-      fallbackAirportDb =
-        result;
-
-
-      saveJsonStorage(
-        FALLBACK_AIRPORT_STORAGE_KEY,
-        result
-      );
-
-
-      console.log(
-        "OurAirports fallback loaded:",
-        Object.keys(
-          result
-        ).length
-      );
-
-    })();
-
-
-  try {
-
-    await ourAirportsLoadPromise;
-
-  } catch (
-    err
-  ) {
-
-    /*
-     * 실패하면 다음 검색 때 재시도 가능하게.
-     */
-    ourAirportsLoadPromise =
-      null;
-
-
-    throw err;
-
-  }
-
-}
-
-
-/************************************************************
- * LOOKUP FALLBACK AIRPORT
- ************************************************************/
-
-async function lookupAirportFromFallback(
+async function lookupSingleAirportFromApi(
   code
 ) {
 
@@ -2858,34 +2324,250 @@ async function lookupAirportFromFallback(
       .toUpperCase();
 
 
-  /*
-   * localStorage cache에 이미 있음.
-   */
   if (
-    fallbackAirportDb[
+    !/^[A-Z]{4}$/.test(
+      code
+    )
+  ) {
+
+    return null;
+
+  }
+
+
+  /**********************************************************
+   * 이미 검색했던 공항이면 API 호출 안 함.
+   **********************************************************/
+
+  if (
+    fallbackAirportCache[
       code
     ]
   ) {
 
-    return fallbackAirportDb[
+    return fallbackAirportCache[
       code
     ];
 
   }
 
 
-  /*
-   * 아직 전체 OurAirports DB를 안 읽었다면 load.
-   */
-  await ensureOurAirportsLoaded();
+  /**********************************************************
+   * 같은 ICAO에 대한 중복 동시 요청 방지
+   **********************************************************/
 
-
-  return (
-    fallbackAirportDb[
+  if (
+    pendingAirportLookups[
       code
-    ] ||
-    null
-  );
+    ]
+  ) {
+
+    return pendingAirportLookups[
+      code
+    ];
+
+  }
+
+
+  pendingAirportLookups[
+    code
+  ] =
+    (async function() {
+
+      try {
+
+        const url =
+          AIRPORT_FALLBACK_API +
+          encodeURIComponent(
+            code
+          );
+
+
+        const res =
+          await fetch(
+            url,
+            {
+              method:
+                "GET",
+
+              cache:
+                "no-store",
+
+              headers: {
+
+                Accept:
+                  "application/json"
+
+              }
+
+            }
+          );
+
+
+        if (
+          !res.ok
+        ) {
+
+          throw new Error(
+            "Airport API HTTP " +
+            res.status
+          );
+
+        }
+
+
+        const data =
+          await res.json();
+
+
+        /*
+         * Airport-Data 응답에 status가 있는 경우.
+         */
+
+        if (
+          data &&
+          Number(
+            data.status
+          ) &&
+          Number(
+            data.status
+          ) !==
+            200
+        ) {
+
+          return null;
+
+        }
+
+
+        const lat =
+          Number(
+            data.latitude
+          );
+
+
+        const lon =
+          Number(
+            data.longitude
+          );
+
+
+        /*
+         * 좌표가 없다면 지도표시 불가능.
+         */
+
+        if (
+          !Number.isFinite(
+            lat
+          ) ||
+          !Number.isFinite(
+            lon
+          )
+        ) {
+
+          return null;
+
+        }
+
+
+        const airport =
+          {
+
+            icao:
+              code,
+
+            lat:
+              lat,
+
+            lon:
+              lon,
+
+            name:
+              String(
+                data.name ||
+                ""
+              ).trim(),
+
+            location:
+              String(
+                data.location ||
+                ""
+              ).trim(),
+
+            country:
+              String(
+                data.country ||
+                ""
+              ).trim(),
+
+            countryCode:
+              String(
+                data.country_code ||
+                ""
+              ).trim(),
+
+            iata:
+              String(
+                data.iata ||
+                ""
+              ).trim(),
+
+            source:
+              "Airport-Data API",
+
+            cachedAt:
+              Date.now()
+
+          };
+
+
+        /******************************************************
+         * 검색한 공항 하나만 cache에 추가.
+         ******************************************************/
+
+        fallbackAirportCache[
+          code
+        ] =
+          airport;
+
+
+        saveJsonStorage(
+          FALLBACK_STORAGE_KEY,
+          fallbackAirportCache
+        );
+
+
+        return airport;
+
+
+      } catch (
+        err
+      ) {
+
+        console.warn(
+          "Single airport API lookup failed:",
+          code,
+          err
+        );
+
+
+        return null;
+
+
+      } finally {
+
+        delete pendingAirportLookups[
+          code
+        ];
+
+      }
+
+    })();
+
+
+  return pendingAirportLookups[
+    code
+  ];
 
 }
 
@@ -2893,15 +2575,18 @@ async function lookupAirportFromFallback(
 /************************************************************
  * RESOLVE AIRPORT
  *
- * 최종 핵심 함수.
- *
  * 좌표:
- * 1. KML
- * 2. OurAirports fallback
  *
- * 정보:
+ * 1. KML
+ * 2. cached API
+ * 3. single ICAO API
+ *
+ *
+ * 공항정보:
+ *
  * 1. airport_info.json
- * 2. OurAirports fallback
+ * 2. cached API
+ * 3. single ICAO API
  ************************************************************/
 
 async function resolveAirport(
@@ -2927,119 +2612,181 @@ async function resolveAirport(
   }
 
 
-  /*
-   * LOCAL COORDINATE
-   */
+  /**********************************************************
+   * LOCAL COORDINATES
+   **********************************************************/
 
-  let coord =
+  const kml =
     airportDb[
       code
     ] ||
     null;
 
 
-  /*
-   * LOCAL INFO
-   */
+  /**********************************************************
+   * LOCAL AIRPORT INFO
+   **********************************************************/
 
-  let info =
+  const localInfo =
     airportInfoDb[
       code
     ] ||
     null;
 
 
-  /*
-   * 기존 fallback cache 확인
-   */
+  /**********************************************************
+   * EXISTING API CACHE
+   **********************************************************/
 
-  let fallback =
-    fallbackAirportDb[
+  let api =
+    fallbackAirportCache[
       code
     ] ||
     null;
 
 
-  /*
-   * 좌표 또는 정보가 하나라도 없으면 fallback 조회.
-   */
+  /**********************************************************
+   * API가 필요한지 판단.
+   *
+   * 아래 중 하나라도 없으면 API 한 건 조회:
+   *
+   * - 좌표
+   * - 공항 이름
+   * - 국가
+   **********************************************************/
+
+  const haveCoordinate =
+    !!(
+      kml &&
+      Number.isFinite(
+        Number(
+          kml.lat
+        )
+      ) &&
+      Number.isFinite(
+        Number(
+          kml.lon
+        )
+      )
+    );
+
+
+  const haveName =
+    !!(
+      localInfo &&
+      String(
+        localInfo.name ||
+        ""
+      ).trim()
+    );
+
+
+  const haveCountry =
+    !!(
+      localInfo &&
+      String(
+        localInfo.country ||
+        ""
+      ).trim()
+    );
+
 
   if (
-    !coord ||
-    !info
+    !api &&
+    (
+      !haveCoordinate ||
+      !haveName ||
+      !haveCountry
+    )
   ) {
 
-    try {
-
-      fallback =
-        fallback ||
-        await lookupAirportFromFallback(
-          code
-        );
-
-    } catch (
-      err
-    ) {
-
-      console.warn(
-        "Fallback airport lookup failed:",
-        code,
-        err
+    api =
+      await lookupSingleAirportFromApi(
+        code
       );
 
-    }
-
   }
 
 
-  /*
-   * 좌표:
+  /**********************************************************
+   * COORDINATE
+   *
    * KML 우선.
-   */
+   **********************************************************/
+
+  let lat =
+    null;
+
+
+  let lon =
+    null;
+
+
+  let coordinateSource =
+    "";
+
 
   if (
-    !coord &&
-    fallback
+    haveCoordinate
   ) {
 
-    coord = {
+    lat =
+      Number(
+        kml.lat
+      );
 
-      icao:
-        code,
 
-      lat:
-        Number(
-          fallback.lat
-        ),
+    lon =
+      Number(
+        kml.lon
+      );
 
-      lon:
-        Number(
-          fallback.lon
-        ),
 
-      source:
-        "OurAirports"
+    coordinateSource =
+      "KML";
 
-    };
+  } else if (
+    api &&
+    Number.isFinite(
+      Number(
+        api.lat
+      )
+    ) &&
+    Number.isFinite(
+      Number(
+        api.lon
+      )
+    )
+  ) {
+
+    lat =
+      Number(
+        api.lat
+      );
+
+
+    lon =
+      Number(
+        api.lon
+      );
+
+
+    coordinateSource =
+      "Airport-Data API";
 
   }
 
 
   /*
-   * 좌표가 없으면 지도 표시 불가.
+   * 좌표가 끝까지 없으면 지도 표시 불가능.
    */
 
   if (
-    !coord ||
     !Number.isFinite(
-      Number(
-        coord.lat
-      )
+      lat
     ) ||
     !Number.isFinite(
-      Number(
-        coord.lon
-      )
+      lon
     )
   ) {
 
@@ -3048,71 +2795,110 @@ async function resolveAirport(
   }
 
 
-  /*
-   * INFO:
-   * airport_info.json 우선.
-   */
+  /**********************************************************
+   * AIRPORT NAME
+   **********************************************************/
 
   let name =
     "";
 
+
+  if (
+    localInfo &&
+    localInfo.name
+  ) {
+
+    name =
+      String(
+        localInfo.name
+      ).trim();
+
+  }
+
+
+  if (
+    !name &&
+    api &&
+    api.name
+  ) {
+
+    name =
+      String(
+        api.name
+      ).trim();
+
+  }
+
+
+  /**********************************************************
+   * COUNTRY
+   **********************************************************/
 
   let country =
     "";
 
 
   if (
-    info
+    localInfo &&
+    localInfo.country
   ) {
-
-    name =
-      String(
-        info.name ||
-        ""
-      ).trim();
-
 
     country =
       String(
-        info.country ||
-        ""
+        localInfo.country
       ).trim();
 
   }
 
 
-  /*
-   * 부족한 부분만 fallback으로 보완.
-   */
-
   if (
-    fallback
+    !country &&
+    api &&
+    api.country
   ) {
 
-    if (
-      !name
-    ) {
+    country =
+      String(
+        api.country
+      ).trim();
 
-      name =
-        String(
-          fallback.name ||
-          ""
-        ).trim();
-
-    }
+  }
 
 
-    if (
-      !country
-    ) {
+  /**********************************************************
+   * LOCATION
+   *
+   * 현재 airport_info.json에는 없어도 됨.
+   * API fallback에서 있으면 표시.
+   **********************************************************/
 
-      country =
-        String(
-          fallback.country ||
-          ""
-        ).trim();
+  let location =
+    "";
 
-    }
+
+  if (
+    localInfo &&
+    localInfo.location
+  ) {
+
+    location =
+      String(
+        localInfo.location
+      ).trim();
+
+  }
+
+
+  if (
+    !location &&
+    api &&
+    api.location
+  ) {
+
+    location =
+      String(
+        api.location
+      ).trim();
 
   }
 
@@ -3123,31 +2909,29 @@ async function resolveAirport(
       code,
 
     lat:
-      Number(
-        coord.lat
-      ),
+      lat,
 
     lon:
-      Number(
-        coord.lon
-      ),
+      lon,
 
     name:
       name,
+
+    location:
+      location,
 
     country:
       country,
 
     coordinateSource:
-      coord.source ||
-      "KML",
+      coordinateSource,
 
     infoSource:
-      info
+      localInfo
         ? "airport_info.json"
         : (
-            fallback
-              ? "OurAirports"
+            api
+              ? "Airport-Data API"
               : ""
           )
 
@@ -3157,22 +2941,16 @@ async function resolveAirport(
 
 
 /************************************************************
- * GET AIRPORT FOR NORMAL MAP OPERATIONS
- *
- * flight-result map에서도 KML에 없으면 fallback 가능.
+ * NORMAL GET AIRPORT
  ************************************************************/
 
 async function getAirport(
   code
 ) {
 
-  const airport =
-    await resolveAirport(
-      code
-    );
-
-
-  return airport;
+  return resolveAirport(
+    code
+  );
 
 }
 
@@ -3270,7 +3048,7 @@ function getRenderLatLng(
 
 
 /************************************************************
- * QUERY CODE
+ * QUERY AIRPORT
  ************************************************************/
 
 function getQueryAirportCode() {
@@ -3389,11 +3167,9 @@ function getCountryGroupByIcao(
 
 
   /*
-   * Mainland China only.
-   * ZK = North Korea
-   * ZM = Mongolia
-   * 제외.
+   * China Mainland
    */
+
   if (
     /^(ZB|ZG|ZH|ZJ|ZL|ZP|ZS|ZU|ZW|ZY)/.test(
       code
@@ -3405,8 +3181,15 @@ function getCountryGroupByIcao(
   }
 
 
+  /*
+   * USA
+   */
+
   if (
-    /^(K|PA|PF|PO|PH)/.test(
+    /^K/.test(
+      code
+    ) ||
+    /^(PA|PF|PO|PH)/.test(
       code
     )
   ) {
@@ -3416,8 +3199,12 @@ function getCountryGroupByIcao(
   }
 
 
+  /*
+   * Canada
+   */
+
   if (
-    /^C/.test(
+    /^C[A-Z]{3}$/.test(
       code
     )
   ) {
@@ -3426,6 +3213,10 @@ function getCountryGroupByIcao(
 
   }
 
+
+  /*
+   * India
+   */
 
   if (
     /^(VA|VE|VI|VO)/.test(
@@ -3439,8 +3230,11 @@ function getCountryGroupByIcao(
 
 
   /*
-   * Myanmar VY 포함
+   * Southeast Asia
+   *
+   * VY = Myanmar 포함.
    */
+
   if (
     /^(RP|WB|WI|WM|WS|WA|WQ|WP|VT|VV|VD|VL|VY)/.test(
       code
@@ -3451,6 +3245,10 @@ function getCountryGroupByIcao(
 
   }
 
+
+  /*
+   * Middle East
+   */
 
   if (
     /^(LL|OB|OE|OI|OJ|OK|OL|OM|OO|OR|OS|OT)/.test(
@@ -3463,6 +3261,10 @@ function getCountryGroupByIcao(
   }
 
 
+  /*
+   * South America
+   */
+
   if (
     /^(SA|SB|SC|SE|SG|SK|SL|SM|SO|SP|SU|SV|SW|SY)/.test(
       code
@@ -3473,6 +3275,10 @@ function getCountryGroupByIcao(
 
   }
 
+
+  /*
+   * Central Asia / Mongolia
+   */
 
   if (
     /^(UA|UC|UT|ZM)/.test(
@@ -3485,6 +3291,10 @@ function getCountryGroupByIcao(
   }
 
 
+  /*
+   * Oceania
+   */
+
   if (
     /^(Y|NZ|NF|NG|NI|NL|NS|NT|NV|NW)/.test(
       code
@@ -3496,8 +3306,12 @@ function getCountryGroupByIcao(
   }
 
 
+  /*
+   * Europe
+   */
+
   if (
-    /^(E[A-Z]|BI|BK|LA|LB|LC|LD|LE|LF|LG|LH|LI|LJ|LK|LM|LN|LO|LP|LR|LS|LT|LU|LW|LX|LY|LZ|UE|UH|UI|UL|UN|UR|US|UU)/.test(
+    /^(E[A-Z]|BI|BK|LA|LB|LC|LD|LE|LF|LG|LH|LI|LJ|LK|LM|LN|LO|LP|LR|LS|LT|LU|LW|LX|LY|LZ)/.test(
       code
     )
   ) {
@@ -3506,6 +3320,10 @@ function getCountryGroupByIcao(
 
   }
 
+
+  /*
+   * Africa
+   */
 
   if (
     /^(DA|DB|DF|DG|DI|DN|DR|DT|DX|FA|FB|FC|FD|FE|FG|FH|FI|FJ|FK|FL|FM|FN|FO|FP|FQ|FS|FT|FV|FW|FX|FY|FZ|G[A-Z]|HA|HB|HC|HD|HE|HH|HK|HL|HR|HS|HT|HU)/.test(
@@ -3524,7 +3342,7 @@ function getCountryGroupByIcao(
 
 
 /************************************************************
- * FLIGHT GROUP / COLOR
+ * COUNTERPART
  ************************************************************/
 
 function getCounterpartAirport(
@@ -3597,7 +3415,7 @@ function isFplMissing(
   flight
 ) {
 
-  const value =
+  const fplYn =
     String(
       flight.fplYn ||
       ""
@@ -3607,7 +3425,7 @@ function isFplMissing(
 
 
   if (
-    value ===
+    fplYn ===
     "N"
   ) {
 
@@ -3675,7 +3493,7 @@ function getFlightUniqueKey(
 
 
 /************************************************************
- * MAIN UBIKAIS SEARCH
+ * SEARCH UBIKAIS FLIGHTS
  ************************************************************/
 
 async function searchFlights() {
@@ -3775,7 +3593,7 @@ async function searchFlights() {
       );
 
 
-    const response =
+    const res =
       await fetch(
         url,
         {
@@ -3786,19 +3604,19 @@ async function searchFlights() {
 
 
     if (
-      !response.ok
+      !res.ok
     ) {
 
       throw new Error(
         "Backend HTTP " +
-        response.status
+        res.status
       );
 
     }
 
 
     const data =
-      await response.json();
+      await res.json();
 
 
     if (
@@ -3879,14 +3697,7 @@ async function searchFlights() {
       thisSearchId
     )
       .catch(
-        function(err) {
-
-          console.error(
-            "Map render failed:",
-            err
-          );
-
-        }
+        console.error
       );
 
 
@@ -3963,8 +3774,10 @@ function resetResults() {
 
 
   /*
-   * 오른쪽 아래 검색 marker는 유지.
+   * Bottom-right ▼ marker 유지.
    */
+
+
   closeDetail();
 
 
@@ -3982,7 +3795,7 @@ function resetResults() {
 
 
 /************************************************************
- * FLIGHT LIST
+ * LIST
  ************************************************************/
 
 function renderFlightList() {
@@ -4367,61 +4180,122 @@ async function renderResultAirportsFast(
     );
 
 
+  /**********************************************************
+   * KML 또는 기존 캐시에 있는 공항은 먼저 즉시 표시.
+   *
+   * 없는 공항만 resolveAirport가 API 한 건 조회.
+   **********************************************************/
+
+  const localCodes =
+    [];
+
+
+  const fallbackCodes =
+    [];
+
+
+  codes.forEach(
+    function(code) {
+
+      if (
+        airportDb[
+          code
+        ] ||
+        fallbackAirportCache[
+          code
+        ]
+      ) {
+
+        localCodes.push(
+          code
+        );
+
+      } else {
+
+        fallbackCodes.push(
+          code
+        );
+
+      }
+
+    }
+  );
+
+
   /*
-   * Promise.allSettled로 병렬 처리.
+   * 이미 좌표 있는 공항 먼저.
    */
-  const resolved =
-    await Promise.allSettled(
-      codes.map(
-        function(code) {
 
-          return getAirport(
-            code
-          );
-
-        }
-      )
-    );
-
-
-  if (
-    searchId !==
-    activeSearchId
+  for (
+    const code
+    of localCodes
   ) {
 
-    return;
+    const airport =
+      await resolveAirport(
+        code
+      );
+
+
+    if (
+      !airport ||
+      searchId !==
+        activeSearchId
+    ) {
+
+      continue;
+
+    }
+
+
+    addResultAirportMarker(
+
+      code,
+
+      airport,
+
+      airportMap[
+        code
+      ],
+
+      queryCode,
+
+      referenceLon
+
+    );
 
   }
 
 
-  resolved.forEach(
-    function(result, index) {
+  fitResultAirports(
+    true
+  );
+
+
+  /*
+   * 좌표가 없는 공항은 API fallback.
+   *
+   * 각각 해당 ICAO 1건씩만 조회.
+   */
+
+  fallbackCodes.forEach(
+    async function(code) {
+
+      const airport =
+        await resolveAirport(
+          code
+        );
+
 
       if (
-        result.status !==
-        "fulfilled"
+        !airport ||
+        searchId !==
+          activeSearchId
       ) {
 
         return;
 
       }
-
-
-      const airport =
-        result.value;
-
-
-      if (!airport) {
-
-        return;
-
-      }
-
-
-      const code =
-        codes[
-          index
-        ];
 
 
       addResultAirportMarker(
@@ -4440,19 +4314,19 @@ async function renderResultAirportsFast(
 
       );
 
+      /*
+       * 여기서 다시 fit하지 않음.
+       * 사용자가 움직인 지도를 뺏지 않게.
+       */
+
     }
-  );
-
-
-  fitResultAirports(
-    true
   );
 
 }
 
 
 /************************************************************
- * RESULT AIRPORT MARKER
+ * RESULT MARKER
  ************************************************************/
 
 function addResultAirportMarker(
@@ -4583,7 +4457,7 @@ function addResultAirportMarker(
 
 
 /************************************************************
- * NORMAL AIRPORT ICON
+ * NORMAL ICON
  ************************************************************/
 
 function makeAirportIcon(
@@ -4653,7 +4527,7 @@ function makeAirportIcon(
 
 
 /************************************************************
- * SEARCH AIRPORT ICON
+ * SEARCH ICON
  ************************************************************/
 
 function makeSearchAirportIcon() {
@@ -4699,7 +4573,11 @@ function makeSearchAirportIcon() {
 /************************************************************
  * BOTTOM RIGHT AIRPORT SEARCH
  *
- * UBIKAIS와 완전히 독립.
+ * 절대 UBIKAIS 검색을 실행하지 않는다.
+ *
+ * airportInput 변경 안 함.
+ * allFlights 변경 안 함.
+ * visibleFlights 변경 안 함.
  ************************************************************/
 
 async function searchAirportOnMap() {
@@ -4747,7 +4625,13 @@ async function searchAirportOnMap() {
   try {
 
     /********************************************************
-     * KML → JSON → OurAirports fallback
+     * RESOLVE
+     *
+     * KML
+     * ↓
+     * airport_info.json
+     * ↓
+     * API single lookup
      ********************************************************/
 
     const airport =
@@ -4768,17 +4652,17 @@ async function searchAirportOnMap() {
     }
 
 
-    /*
-     * 이전 검색 marker 제거.
-     */
+    /********************************************************
+     * PREVIOUS SEARCH MARKER REMOVE
+     ********************************************************/
 
     searchLayer
       .clearLayers();
 
 
-    /*
-     * 현재 map world를 기준으로 longitude unwrap.
-     */
+    /********************************************************
+     * WORLD LONGITUDE
+     ********************************************************/
 
     const referenceLon =
       map
@@ -4794,7 +4678,7 @@ async function searchAirportOnMap() {
 
 
     /********************************************************
-     * SEARCH ▼ MARKER
+     * ▼ MARKER
      ********************************************************/
 
     const marker =
@@ -4871,6 +4755,32 @@ async function searchAirportOnMap() {
     }
 
 
+    /*
+     * Airport-Data의 location:
+     *
+     * 예:
+     * Toluca, Estado de México
+     * New York, NY
+     */
+
+    if (
+      airport.location
+    ) {
+
+      popup +=
+        `
+
+        <div class="search-popup-location">
+          ${escapeHtml(
+            airport.location
+          )}
+        </div>
+
+        `;
+
+    }
+
+
     if (
       airport.country
     ) {
@@ -4908,11 +4818,7 @@ async function searchAirportOnMap() {
 
 
     /********************************************************
-     * MAP MOVE ONLY
-     *
-     * airportInput 변경 안 함.
-     * allFlights 변경 안 함.
-     * visibleFlights 변경 안 함.
+     * MOVE MAP ONLY
      ********************************************************/
 
     map.flyTo(
@@ -4992,13 +4898,16 @@ function filterByAirport(
       function(flight) {
 
         return (
+
           String(
             flight.dep ||
             ""
           )
             .trim()
             .toUpperCase() ===
-            code ||
+            code
+
+          ||
 
           String(
             flight.arr ||
@@ -5007,6 +4916,7 @@ function filterByAirport(
             .trim()
             .toUpperCase() ===
             code
+
         );
 
       }
@@ -5141,7 +5051,7 @@ function selectFlight(
 
 
 /************************************************************
- * DRAW LEG
+ * DRAW SELECTED LEG
  ************************************************************/
 
 async function drawSelectedLeg(
@@ -5152,7 +5062,7 @@ async function drawSelectedLeg(
     .clearLayers();
 
 
-  const resolved =
+  const airports =
     await Promise.all(
       [
 
@@ -5169,11 +5079,11 @@ async function drawSelectedLeg(
 
 
   const dep =
-    resolved[0];
+    airports[0];
 
 
   const arr =
-    resolved[1];
+    airports[1];
 
 
   if (
@@ -5220,6 +5130,10 @@ async function drawSelectedLeg(
     );
 
 
+  /**********************************************************
+   * DASHED LEG
+   **********************************************************/
+
   L.polyline(
     [
       depLatLng,
@@ -5246,28 +5160,36 @@ async function drawSelectedLeg(
   );
 
 
+  /**********************************************************
+   * ENDPOINT MARKERS
+   **********************************************************/
+
   [
     {
+
       code:
         flight.dep,
 
       latlng:
         depLatLng
+
     },
 
     {
+
       code:
         flight.arr,
 
       latlng:
         arrLatLng
+
     }
 
   ]
   .forEach(
     function(x) {
 
-      const endpoint =
+      const marker =
         L.marker(
           x.latlng,
           {
@@ -5283,7 +5205,7 @@ async function drawSelectedLeg(
         );
 
 
-      endpoint.bindTooltip(
+      marker.bindTooltip(
         x.code,
         {
 
@@ -5306,13 +5228,17 @@ async function drawSelectedLeg(
       );
 
 
-      endpoint.addTo(
+      marker.addTo(
         selectedLegLayer
       );
 
     }
   );
 
+
+  /**********************************************************
+   * FIT
+   **********************************************************/
 
   map.fitBounds(
     L.latLngBounds(
@@ -5458,10 +5384,6 @@ function openDetail(
 }
 
 
-/************************************************************
- * CLOSE DETAIL
- ************************************************************/
-
 function closeDetail() {
 
   document
@@ -5528,26 +5450,26 @@ async function loadFpl(
 
   try {
 
-    const response =
+    const res =
       await fetch(
         url
       );
 
 
     if (
-      !response.ok
+      !res.ok
     ) {
 
       throw new Error(
         "Backend HTTP " +
-        response.status
+        res.status
       );
 
     }
 
 
     const data =
-      await response.json();
+      await res.json();
 
 
     if (
@@ -5642,9 +5564,7 @@ async function copyToClipboard(
       .trim();
 
 
-  if (
-    !value
-  ) {
+  if (!value) {
 
     return;
 
@@ -5677,14 +5597,12 @@ async function copyToClipboard(
         value;
 
 
-      textarea.style
-        .position =
-          "fixed";
+      textarea.style.position =
+        "fixed";
 
 
-      textarea.style
-        .left =
-          "-9999px";
+      textarea.style.left =
+        "-9999px";
 
 
       document.body
@@ -5692,8 +5610,6 @@ async function copyToClipboard(
           textarea
         );
 
-
-      textarea.focus();
 
       textarea.select();
 
@@ -5834,7 +5750,7 @@ function resetCopyButton(
 
 
 /************************************************************
- * FIT RESULT AIRPORTS
+ * FIT RESULTS
  ************************************************************/
 
 function fitResultAirports(
@@ -5918,10 +5834,8 @@ function escapeHtml(
 ) {
 
   return String(
-    value ===
-      null ||
-    value ===
-      undefined
+    value === null ||
+    value === undefined
       ? ""
       : value
   )
