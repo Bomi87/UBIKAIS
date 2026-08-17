@@ -543,6 +543,17 @@ input {
 }
 
 
+.detail-leg-row {
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  min-width: 0;
+}
+
+
 .detail-leg {
   color: #111827;
 
@@ -579,18 +590,40 @@ input {
 .detail-nat {
   display: none;
 
+  flex: 0 0 auto;
+
   padding: 4px 9px;
 
   border-radius: 999px;
-
-  background: #dbeafe;
-
-  color: #1e40af;
 
   font-size: 10px;
   font-weight: 900;
 
   white-space: nowrap;
+}
+
+
+.detail-nat.nat-pax {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+
+.detail-nat.nat-cargo {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+
+.detail-nat.nat-tech-stop {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+
+.detail-nat.nat-ferry {
+  background: #e5e7eb;
+  color: #4b5563;
 }
 
 
@@ -1395,10 +1428,20 @@ input {
 
     <div class="detail-head-left">
 
-      <div
-        id="detailLeg"
-        class="detail-leg"
-      ></div>
+      <div class="detail-leg-row">
+
+        <div
+          id="detailLeg"
+          class="detail-leg"
+        ></div>
+
+
+        <span
+          id="detailNat"
+          class="detail-nat"
+        ></span>
+
+      </div>
 
 
       <div
@@ -1410,12 +1453,6 @@ input {
 
 
     <div class="detail-head-right">
-
-      <span
-        id="detailNat"
-        class="detail-nat"
-      ></span>
-
 
       <button
         id="closeDetail"
@@ -6390,6 +6427,23 @@ function openDetail(
       detailNat.textContent =
         natLabel;
 
+      detailNat.classList.remove(
+        "nat-pax",
+        "nat-cargo",
+        "nat-tech-stop",
+        "nat-ferry"
+      );
+
+      if (natLabel === "Pax") {
+        detailNat.classList.add("nat-pax");
+      } else if (natLabel === "Cargo") {
+        detailNat.classList.add("nat-cargo");
+      } else if (natLabel === "Tech-stop") {
+        detailNat.classList.add("nat-tech-stop");
+      } else if (natLabel === "Ferry") {
+        detailNat.classList.add("nat-ferry");
+      }
+
       detailNat.style.display =
         "inline-block";
 
@@ -6397,6 +6451,13 @@ function openDetail(
 
       detailNat.textContent =
         "";
+
+      detailNat.classList.remove(
+        "nat-pax",
+        "nat-cargo",
+        "nat-tech-stop",
+        "nat-ferry"
+      );
 
       detailNat.style.display =
         "none";
