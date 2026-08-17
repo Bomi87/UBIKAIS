@@ -348,6 +348,10 @@ input {
 
   cursor: pointer;
 
+  /* Flight card text can be dragged/selected for copying. */
+  -webkit-user-select: text;
+  user-select: text;
+
   transition:
     background .12s ease;
 }
@@ -1677,6 +1681,9 @@ const AIRLINE_MAP = {
   CRK:"Hong Kong Airlines", HKE:"HK Express", AMU:"Air Macau",
   HGB:"Greater Bay Airlines",
 
+CSH:"Shanghai Airlines", JDL:"Jiangsu Jingdong Cargo Airlines", HYT:"YTO Cargo Airlines",
+  QDA:"Qingdao Airlines", LHA:"Air Central", HLF:"Central Airlines",
+
   // Taiwan
   EVA:"EVA Air", CAL:"China Airlines", SJX:"STARLUX Airlines",
   TTW:"Tigerair Taiwan", UIA:"Uni Air", MDA:"Mandarin Airlines",
@@ -1705,7 +1712,7 @@ const AIRLINE_MAP = {
 
   // Central Asia / Mongolia
   MGL:"MIAT Mongolian Airlines", KZR:"Air Astana", UZB:"Uzbekistan Airways",
-  KZA:"Air Astana", TJK:"Somon Air", TUA:"Turkmenistan Airlines", VSV:"SCAT Airlines",
+  KZA:"Air Astana", TJK:"Somon Air", TUA:"Turkmenistan Airlines", VSV:"SCAT Airlines", QNT:"Qanot Sharq Airlines",
 
   // USA / Canada
   UAL:"United Airlines", DAL:"Delta Air Lines", AAL:"American Airlines",
@@ -1721,7 +1728,7 @@ const AIRLINE_MAP = {
   NCA:"Nippon Cargo Airlines", ABW:"AirBridgeCargo", BOX:"AeroLogic",
   MNB:"MNG Airlines", MNG:"MNG Airlines", KZR:"Air Astana", CKS:"Kalitta Air", PAC:"Polar Air Cargo",
   SOO:"Southern Air", DHL:"DHL Air", BCS:"European Air Transport Leipzig",
-  NCR:"National Airlines", WIN:"Awesome Cargo", LHA:"Air Central Airline",
+  NCR:"National Airlines", WIN:"Awesome Cargo",
   CSS:"SF Express", RCR:"ROMCargo Airlines", ICV:"Cargolux Italia",
 
   // Europe
@@ -4901,6 +4908,41 @@ function renderFlightList() {
 
       item.onclick =
         function() {
+
+          /*
+           * If the user dragged to select text inside this flight card,
+           * keep the selection for copy and do not treat it as a card click.
+           */
+          const selection =
+            window.getSelection
+              ? window.getSelection()
+              : null;
+
+          if (
+            selection &&
+            !selection.isCollapsed &&
+            String(selection.toString() || "").trim()
+          ) {
+
+            const anchorNode =
+              selection.anchorNode &&
+              selection.anchorNode.nodeType === 3
+                ? selection.anchorNode.parentNode
+                : selection.anchorNode;
+
+            const focusNode =
+              selection.focusNode &&
+              selection.focusNode.nodeType === 3
+                ? selection.focusNode.parentNode
+                : selection.focusNode;
+
+            if (
+              (anchorNode && item.contains(anchorNode)) ||
+              (focusNode && item.contains(focusNode))
+            ) {
+              return;
+            }
+          }
 
           selectFlight(
             flight
