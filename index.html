@@ -561,6 +561,35 @@ input {
 }
 
 
+.detail-head-right {
+  flex: 0 0 auto;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+}
+
+
+.detail-nat {
+  display: none;
+
+  padding: 4px 9px;
+
+  border-radius: 999px;
+
+  background: #dbeafe;
+
+  color: #1e40af;
+
+  font-size: 10px;
+  font-weight: 900;
+
+  white-space: nowrap;
+}
+
+
 .close-btn {
   flex: 0 0 auto;
 
@@ -1376,13 +1405,23 @@ input {
     </div>
 
 
-    <button
-      id="closeDetail"
-      class="close-btn"
-      type="button"
-    >
-      ×
-    </button>
+    <div class="detail-head-right">
+
+      <span
+        id="detailNat"
+        class="detail-nat"
+      ></span>
+
+
+      <button
+        id="closeDetail"
+        class="close-btn"
+        type="button"
+      >
+        ×
+      </button>
+
+    </div>
 
   </div>
 
@@ -1650,7 +1689,7 @@ const AIRLINE_MAP = {
   GIA:"Garuda Indonesia", LNI:"Lion Air", BTK:"Batik Air", CTV:"Citilink",
   HVN:"Vietnam Airlines", VJC:"VietJet Air", PIC:"Pacific Airlines",
   RBA:"Royal Brunei Airlines", LAO:"Lao Airlines", KHV:"Cambodia Angkor Air",
-  BML:"Bamboo Airways", MYU:"Myanmar Airways International",
+  BML:"Bamboo Airways", MYU:"Myanmar Airways International", SPQ:"Sun Phu Quoc Airways",
 
   // India / South Asia
   AIC:"Air India", IGO:"IndiGo", VTI:"Vistara", AXB:"Air India Express",
@@ -1665,7 +1704,7 @@ const AIRLINE_MAP = {
 
   // Central Asia / Mongolia
   MGL:"MIAT Mongolian Airlines", KZR:"Air Astana", UZB:"Uzbekistan Airways",
-  KZA:"Air Astana", TJK:"Somon Air", TUA:"Turkmenistan Airlines",
+  KZA:"Air Astana", TJK:"Somon Air", TUA:"Turkmenistan Airlines", VSV:"SCAT Airlines",
 
   // USA / Canada
   UAL:"United Airlines", DAL:"Delta Air Lines", AAL:"American Airlines",
@@ -1681,6 +1720,7 @@ const AIRLINE_MAP = {
   NCA:"Nippon Cargo Airlines", ABW:"AirBridgeCargo", BOX:"AeroLogic",
   MNB:"MNG Airlines", KZR:"Air Astana", CKS:"Kalitta Air", PAC:"Polar Air Cargo",
   SOO:"Southern Air", DHL:"DHL Air", BCS:"European Air Transport Leipzig",
+  NCR:"National Airlines", WIN:"Awesome Cargo",
 
   // Europe
   AFR:"Air France", BAW:"British Airways", DLH:"Lufthansa", KLM:"KLM",
@@ -6140,6 +6180,74 @@ async function drawSelectedLeg(
 
 
 /************************************************************
+ * NAT LABEL
+ *
+ * UBIKAIS NAT code:
+ * PAX / PAE / PAC -> Pax
+ * CGO / CGE / CGC -> Cargo
+ * STP             -> Tech-stop
+ * FER             -> Ferry
+ ************************************************************/
+
+function getNatLabel(
+  nat
+) {
+
+  const code =
+    String(
+      nat ||
+      ""
+    )
+      .trim()
+      .toUpperCase();
+
+
+  if (
+    code === "PAX" ||
+    code === "PAE" ||
+    code === "PAC"
+  ) {
+
+    return "Pax";
+
+  }
+
+
+  if (
+    code === "CGO" ||
+    code === "CGE" ||
+    code === "CGC"
+  ) {
+
+    return "Cargo";
+
+  }
+
+
+  if (
+    code === "STP"
+  ) {
+
+    return "Tech-stop";
+
+  }
+
+
+  if (
+    code === "FER"
+  ) {
+
+    return "Ferry";
+
+  }
+
+
+  return "";
+
+}
+
+
+/************************************************************
  * DETAIL
  ************************************************************/
 
@@ -6204,6 +6312,46 @@ function openDetail(
             flight.acType
           : ""
       );
+
+
+  const natLabel =
+    getNatLabel(
+      flight.nat
+    );
+
+
+  const detailNat =
+    document
+      .getElementById(
+        "detailNat"
+      );
+
+
+  if (
+    detailNat
+  ) {
+
+    if (
+      natLabel
+    ) {
+
+      detailNat.textContent =
+        natLabel;
+
+      detailNat.style.display =
+        "inline-block";
+
+    } else {
+
+      detailNat.textContent =
+        "";
+
+      detailNat.style.display =
+        "none";
+
+    }
+
+  }
 
 
   document
