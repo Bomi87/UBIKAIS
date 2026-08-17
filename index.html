@@ -4839,13 +4839,21 @@ function renderFlightList() {
 
 
           ${
-            noFpl
+            String(flight.depStatus || "")
+              .trim()
+              .toUpperCase() === "CNL"
               ? `
                 <span class="no-fpl-text">
-                  (No FPL filed yet)
+                  CNL
                 </span>
               `
-              : ""
+              : noFpl
+                ? `
+                  <span class="no-fpl-text">
+                    (No FPL filed yet)
+                  </span>
+                `
+                : ""
           }
 
         </div>
