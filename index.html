@@ -2335,24 +2335,41 @@ function initializeMap() {
     );
 
 
-  L.tileLayer(
-    "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-    {
+  const streetMap =
+    L.layerGroup(
+      [
 
-      maxZoom:
-        15,
+        L.tileLayer(
+          "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+          {
 
-      noWrap:
-        false,
+            maxZoom:
+              16,
 
-      attribution:
-        "&copy; OpenStreetMap &copy; CARTO"
+            attribution:
+              "Tiles &copy; Esri"
 
-    }
-  )
-  .addTo(
-    map
-  );
+          }
+        ),
+
+        L.tileLayer(
+          "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}",
+          {
+
+            maxZoom:
+              16,
+
+            attribution:
+              "Labels &copy; Esri"
+
+          }
+        )
+
+      ]
+    )
+    .addTo(
+      map
+    );
 
 
   L.control
