@@ -4495,6 +4495,120 @@ async function fetchFplDataForFlight(flight) {
  * UBIKAIS SEARCH
  ************************************************************/
 
+/*
+ * V45 SEARCH guard
+ *
+ * 기존 조회 결과/지도/FPL/CHG 로직은 그대로 유지하고,
+ * 브라우저가 무기한 LOADING 상태에 남지 않도록 UI 보호만 추가한다.
+ *
+ * - 15초 이상: "응답 지연 중" 안내
+ * - 120초 이상: 해당 브라우저 요청 종료 후 SEARCH 버튼 복구
+ *
+ * 89초처럼 늦게라도 정상 응답하는 경우에는 120초 이내이므로
+ * 결과를 그대로 받아 표시한다.
+ */
+async function fetchWithSearchGuard(
+  url,
+  options,
+  slowAfterMs,
+  hardTimeoutMs,
+  onSlow
+) {
+  const controller =
+    typeof AbortController !== "undefined"
+      ? new AbortController()
+      : null;
+
+  const opts =
+    Object.assign(
+      {},
+      options || {}
+    );
+
+  if (controller) {
+    opts.signal =
+      controller.signal;
+  }
+
+  let slowTimer =
+    null;
+
+  let timeoutTimer =
+    null;
+
+  let didTimeout =
+    false;
+
+  try {
+
+    slowTimer =
+      setTimeout(
+        function() {
+          if (
+            typeof onSlow ===
+            "function"
+          ) {
+            onSlow();
+          }
+        },
+        slowAfterMs
+      );
+
+    if (controller) {
+      timeoutTimer =
+        setTimeout(
+          function() {
+            didTimeout =
+              true;
+
+            controller.abort();
+          },
+          hardTimeoutMs
+        );
+    }
+
+    const response =
+      await fetch(
+        url,
+        opts
+      );
+
+    return response;
+
+  } catch (err) {
+
+    if (
+      didTimeout ||
+      (
+        err &&
+        err.name ===
+          "AbortError"
+      )
+    ) {
+      throw new Error(
+        "UBIKAIS 응답이 120초 이상 없어 조회를 종료했습니다. 잠시 후 다시 SEARCH 해주세요."
+      );
+    }
+
+    throw err;
+
+  } finally {
+
+    if (slowTimer) {
+      clearTimeout(
+        slowTimer
+      );
+    }
+
+    if (timeoutTimer) {
+      clearTimeout(
+        timeoutTimer
+      );
+    }
+
+  }
+}
+
 async function searchFlights() {
 
   const airport = getQueryAirportCode();
@@ -4548,9 +4662,30 @@ async function searchFlights() {
      ********************************************************/
 
     const fastResponse =
-      await fetch(
+      await fetchWithSearchGuard(
         baseUrl + "&fast=1",
-        { cache: "no-store" }
+        { cache: "no-store" },
+        15000,
+        120000,
+        function() {
+          if (
+            thisSearchId !==
+            activeSearchId
+          ) {
+            return;
+          }
+
+          button.textContent =
+            "WAIT";
+
+          listBox.innerHTML =
+            '<div class="empty">' +
+            'UBIKAIS 응답 지연 중...<br>' +
+            '<span style="font-size:10px;color:#9ca3af;">' +
+            '서버 응답을 기다리는 중입니다.' +
+            '</span>' +
+            '</div>';
+        }
       );
 
     if (!fastResponse.ok) {
@@ -4613,9 +4748,22 @@ renderFlightList();
      ********************************************************/
 
     const finalResponse =
-      await fetch(
+      await fetchWithSearchGuard(
         baseUrl,
-        { cache: "no-store" }
+        { cache: "no-store" },
+        15000,
+        120000,
+        function() {
+          if (
+            thisSearchId !==
+            activeSearchId
+          ) {
+            return;
+          }
+
+          button.textContent =
+            "WAIT";
+        }
       );
 
     if (!finalResponse.ok) {
