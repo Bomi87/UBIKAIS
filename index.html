@@ -3654,7 +3654,7 @@ async function geocodeAirportByBackendFallback(code) {
         "?mode=airportFallback" +
         "&icao=" + encodeURIComponent(code);
 
-      const response = await fetch(url, { cache: "no-store" });
+      const response = await fetch(url, { cache: "no-store", credentials: "omit" });
       if (!response.ok) return null;
 
       const data = await response.json();
@@ -4438,7 +4438,9 @@ async function fetchFplDataForFlight(flight) {
             url,
             {
               cache:
-                "no-store"
+                "no-store",
+              credentials:
+                "omit"
             }
           );
 
@@ -4664,7 +4666,7 @@ async function searchFlights() {
     const fastResponse =
       await fetchWithSearchGuard(
         baseUrl + "&fast=1",
-        { cache: "no-store" },
+        { cache: "no-store", credentials: "omit" },
         15000,
         120000,
         function() {
@@ -4750,7 +4752,7 @@ renderFlightList();
     const finalResponse =
       await fetchWithSearchGuard(
         baseUrl,
-        { cache: "no-store" },
+        { cache: "no-store", credentials: "omit" },
         15000,
         120000,
         function() {
