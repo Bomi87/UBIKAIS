@@ -4727,83 +4727,281 @@ async function fetchWithSearchGuard(
   hardTimeoutMs,
   onSlow
 ) {
-  const controller =
-    typeof AbortController !== "undefined"
-      ? new AbortController()
-      : null;
 
-  const opts =
-    Object.assign(
-      {},
-      options || {}
+  const RETRY_DELAYS = [
+    700,
+    1800
+  ];
+
+  const RETRY_HTTP_STATUS = [
+    404,
+    429,
+    500,
+    502,
+    503,
+    504
+  ];
+
+  const startedAt =
+    Date.now();
+
+  let slowTimer = null;
+
+  let slowShown = false;
+
+  /*
+   * 전체 검색 기준으로 한 번만 WAIT 표시
+   */
+  slowTimer =
+    setTimeout(
+      function() {
+
+        slowShown = true;
+
+        if (
+          typeof onSlow ===
+          "function"
+        ) {
+          onSlow();
+        }
+
+      },
+      slowAfterMs
     );
 
-  if (controller) {
-    opts.signal =
-      controller.signal;
-  }
-
-  let slowTimer =
-    null;
-
-  let timeoutTimer =
-    null;
-
-  let didTimeout =
-    false;
 
   try {
 
-    slowTimer =
-      setTimeout(
-        function() {
-          if (
-            typeof onSlow ===
-            "function"
-          ) {
-            onSlow();
-          }
-        },
-        slowAfterMs
-      );
-
-    if (controller) {
-      timeoutTimer =
-        setTimeout(
-          function() {
-            didTimeout =
-              true;
-
-            controller.abort();
-          },
-          hardTimeoutMs
-        );
-    }
-
-    const response =
-      await fetch(
-        url,
-        opts
-      );
-
-    return response;
-
-  } catch (err) {
-
-    if (
-      didTimeout ||
-      (
-        err &&
-        err.name ===
-          "AbortError"
-      )
+    /*
+     * 최초 1회 + retry 2회
+     * = 최대 총 3회
+     */
+    for (
+      let attempt = 0;
+      attempt <= RETRY_DELAYS.length;
+      attempt++
     ) {
-      throw new Error(
-        "UBIKAIS 응답이 120초 이상 없어 조회를 종료했습니다. 잠시 후 다시 SEARCH 해주세요."
-      );
+
+      const elapsed =
+        Date.now() -
+        startedAt;
+
+      const remaining =
+        hardTimeoutMs -
+        elapsed;
+
+      if (remaining <= 0) {
+        throw new Error(
+          "UBIKAIS 응답이 120초 이상 없어 조회를 종료했습니다. 잠시 후 다시 SEARCH 해주세요."
+        );
+      }
+
+
+      const controller =
+        typeof AbortController !==
+        "undefined"
+          ? new AbortController()
+          : null;
+
+
+      const opts =
+        Object.assign(
+          {},
+          options || {}
+        );
+
+
+      if (controller) {
+        opts.signal =
+          controller.signal;
+      }
+
+
+      let timeoutTimer =
+        null;
+
+      let didTimeout =
+        false;
+
+
+      try {
+
+        if (controller) {
+
+          timeoutTimer =
+            setTimeout(
+              function() {
+
+                didTimeout =
+                  true;
+
+                controller.abort();
+
+              },
+              remaining
+            );
+
+        }
+
+
+        /*
+         * retry일 때 query string을 조금 바꿔
+         * 중간 캐시/라우팅 영향을 최소화
+         */
+        let requestUrl =
+          url;
+
+        if (attempt > 0) {
+
+          requestUrl +=
+            (url.indexOf("?") >= 0
+              ? "&"
+              : "?") +
+            "_retry=" +
+            attempt +
+            "_" +
+            Date.now();
+
+        }
+
+
+        const response =
+          await fetch(
+            requestUrl,
+            opts
+          );
+
+
+        /*
+         * 정상 응답
+         */
+        if (response.ok) {
+          return response;
+        }
+
+
+        /*
+         * 순간적인 Google / Gateway 오류라면 retry
+         */
+        if (
+          RETRY_HTTP_STATUS.indexOf(
+            response.status
+          ) >= 0 &&
+          attempt <
+            RETRY_DELAYS.length
+        ) {
+
+          console.warn(
+            "[BACKEND RETRY] HTTP " +
+            response.status +
+            " attempt=" +
+            (attempt + 1)
+          );
+
+
+          await new Promise(
+            function(resolve) {
+
+              setTimeout(
+                resolve,
+                RETRY_DELAYS[
+                  attempt
+                ]
+              );
+
+            }
+          );
+
+
+          continue;
+        }
+
+
+        /*
+         * retry 대상이 아니거나
+         * retry 횟수 소진
+         */
+        return response;
+
+
+      } catch (err) {
+
+        if (
+          didTimeout ||
+          (
+            err &&
+            err.name ===
+              "AbortError"
+          )
+        ) {
+
+          throw new Error(
+            "UBIKAIS 응답이 120초 이상 없어 조회를 종료했습니다. 잠시 후 다시 SEARCH 해주세요."
+          );
+
+        }
+
+
+        /*
+         * 네트워크 오류도 2회까지 retry
+         */
+        if (
+          attempt <
+          RETRY_DELAYS.length
+        ) {
+
+          console.warn(
+            "[BACKEND RETRY] NETWORK ERROR attempt=" +
+            (attempt + 1) +
+            " : " +
+            String(
+              err &&
+              err.message
+                ? err.message
+                : err
+            )
+          );
+
+
+          await new Promise(
+            function(resolve) {
+
+              setTimeout(
+                resolve,
+                RETRY_DELAYS[
+                  attempt
+                ]
+              );
+
+            }
+          );
+
+
+          continue;
+
+        }
+
+
+        throw err;
+
+
+      } finally {
+
+        if (timeoutTimer) {
+          clearTimeout(
+            timeoutTimer
+          );
+        }
+
+      }
+
     }
 
-    throw err;
+
+    throw new Error(
+      "Backend retry exhausted"
+    );
+
 
   } finally {
 
@@ -4813,13 +5011,8 @@ async function fetchWithSearchGuard(
       );
     }
 
-    if (timeoutTimer) {
-      clearTimeout(
-        timeoutTimer
-      );
-    }
-
   }
+
 }
 
 async function searchFlights() {
