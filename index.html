@@ -2484,14 +2484,38 @@ function startUbikaisAfterAuth() {
    * AUTH 완료 후에만 앱 초기화
    **********************************************************/
 
-  setToday();
+setToday();
 
-  initializeMap();
+initializeMap();
 
-  bindEvents();
+bindEvents();
 
+/*
+ * SkyVector에서 돌아온 경우:
+ * 기존 조회 상태를 복원
+ *
+ * 일반적으로 앱을 새로 연 경우:
+ * 기본값으로 자동 조회
+ */
+restoreSkyVectorReturnState()
+  .then(function(restored) {
 
-  restoreSkyVectorReturnState();
+    if (!restored) {
+      searchFlights();
+    }
+
+  })
+  .catch(function(err) {
+
+    console.warn(
+      "Initial state restore failed:",
+      err
+    );
+
+    // 복원 실패해도 기본 조회는 실행
+    searchFlights();
+
+  });
 
 
   refreshAirportKml()
