@@ -1638,6 +1638,24 @@ const FALLBACK_STORAGE_KEY =
 
 
 /************************************************************
+ * FLIGHT LIST CACHE
+ *
+ * 0~5 min  : cache only (no server request)
+ * 5~10 min : show cache immediately + refresh in background
+ * >10 min  : normal server request
+ ************************************************************/
+
+const FLIGHT_CACHE_PREFIX =
+  "UBIKAIS_FLIGHT_CACHE_V46_";
+
+const FLIGHT_CACHE_FRESH_MS =
+  5 * 60 * 1000;
+
+const FLIGHT_CACHE_TTL_MS =
+  10 * 60 * 1000;
+
+
+/************************************************************
  * COLORS
  ************************************************************/
 
@@ -2466,7 +2484,7 @@ function showAuthorizedApp() {
 }
 
 
-function startUbikaisAfterAuth() {
+async function startUbikaisAfterAuth() {
 
   if (UBIKAIS_APP_STARTED) {
     return;
@@ -2484,38 +2502,45 @@ function startUbikaisAfterAuth() {
    * AUTH 완료 후에만 앱 초기화
    **********************************************************/
 
-setToday();
+  setToday();
 
-initializeMap();
+  initializeMap();
 
-bindEvents();
+  bindEvents();
 
-/*
- * SkyVector에서 돌아온 경우:
- * 기존 조회 상태를 복원
- *
- * 일반적으로 앱을 새로 연 경우:
- * 기본값으로 자동 조회
- */
-restoreSkyVectorReturnState()
-  .then(function(restored) {
 
-    if (!restored) {
-      searchFlights();
-    }
+  /*
+   * SkyVector에서 돌아온 경우에는 저장된 화면을 그대로 복원하고
+   * 자동 SEARCH를 실행하지 않는다.
+   *
+   * 일반 신규 진입인 경우에는 오늘 / RKSI / DEPARTURE 기준으로
+   * 자동 SEARCH를 실행한다. searchFlights() 내부에서 5/10분
+   * 브라우저 cache 정책을 적용한다.
+   */
+  let restored =
+    false;
 
-  })
-  .catch(function(err) {
+  try {
+
+    restored =
+      await restoreSkyVectorReturnState();
+
+  } catch (err) {
 
     console.warn(
       "Initial state restore failed:",
       err
     );
 
-    // 복원 실패해도 기본 조회는 실행
-    searchFlights();
+    restored =
+      false;
 
-  });
+  }
+
+
+  if (!restored) {
+    searchFlights();
+  }
 
 
   refreshAirportKml()
@@ -4518,6 +4543,168 @@ async function fetchFplDataForFlight(flight) {
 
 
 /************************************************************
+ * FLIGHT CACHE HELPERS
+ ************************************************************/
+
+function getFlightCacheKey(
+  date,
+  airport,
+  mode
+) {
+
+  return (
+    FLIGHT_CACHE_PREFIX +
+    String(date || "") +
+    "_" +
+    normalizeIcao(airport) +
+    "_" +
+    (mode === "arr" ? "arr" : "dep")
+  );
+
+}
+
+
+function loadFlightCache(
+  date,
+  airport,
+  mode
+) {
+
+  try {
+
+    const key =
+      getFlightCacheKey(
+        date,
+        airport,
+        mode
+      );
+
+    const raw =
+      localStorage.getItem(
+        key
+      );
+
+    if (!raw) {
+      return null;
+    }
+
+    const cached =
+      JSON.parse(raw);
+
+    if (
+      !cached ||
+      !cached.savedAt ||
+      !cached.data ||
+      !Array.isArray(cached.data.records)
+    ) {
+
+      localStorage.removeItem(
+        key
+      );
+
+      return null;
+
+    }
+
+    const age =
+      Date.now() -
+      Number(cached.savedAt);
+
+    if (
+      !Number.isFinite(age) ||
+      age < 0 ||
+      age >= FLIGHT_CACHE_TTL_MS
+    ) {
+
+      localStorage.removeItem(
+        key
+      );
+
+      return null;
+
+    }
+
+    return {
+      key:
+        key,
+
+      savedAt:
+        Number(cached.savedAt),
+
+      age:
+        age,
+
+      data:
+        cached.data
+    };
+
+  } catch (err) {
+
+    console.warn(
+      "Flight cache read failed:",
+      err
+    );
+
+    return null;
+
+  }
+
+}
+
+
+function saveFlightCache(
+  date,
+  airport,
+  mode,
+  data
+) {
+
+  try {
+
+    if (
+      !data ||
+      !Array.isArray(data.records)
+    ) {
+      return;
+    }
+
+    localStorage.setItem(
+      getFlightCacheKey(
+        date,
+        airport,
+        mode
+      ),
+      JSON.stringify({
+        savedAt:
+          Date.now(),
+
+        data:
+          {
+            status:
+              "success",
+
+            phase:
+              String(data.phase || "ats"),
+
+            records:
+              data.records
+          }
+      })
+    );
+
+  } catch (err) {
+
+    console.warn(
+      "Flight cache save failed:",
+      err
+    );
+
+  }
+
+}
+
+
+/************************************************************
  * UBIKAIS SEARCH
  ************************************************************/
 
@@ -4637,8 +4824,15 @@ async function fetchWithSearchGuard(
 
 async function searchFlights() {
 
-  const airport = getQueryAirportCode();
-  const date = document.getElementById("dateInput").value;
+  const airport =
+    getQueryAirportCode();
+
+  const date =
+    document
+      .getElementById(
+        "dateInput"
+      )
+      .value;
 
   if (!date) {
     alert("날짜를 선택하세요.");
@@ -4650,36 +4844,202 @@ async function searchFlights() {
     return;
   }
 
-  const thisSearchId = ++activeSearchId;
-  userMovedMap = false;
 
-  const button = document.getElementById("queryBtn");
-  button.disabled = true;
-  button.textContent = "LOADING";
+  const thisDirection =
+    direction;
 
-  resetResults();
+  const thisSearchId =
+    ++activeSearchId;
 
-  const listBox = document.getElementById("flightList");
-  listBox.innerHTML = '<div class="empty">UBIKAIS 목록 조회 중...</div>';
+  userMovedMap =
+    false;
+
+
+  const button =
+    document.getElementById(
+      "queryBtn"
+    );
+
+  const listBox =
+    document.getElementById(
+      "flightList"
+    );
+
+
+  function normalizeIncomingRecords(
+    records
+  ) {
+
+    const seen =
+      new Set();
+
+    return (
+      Array.isArray(records)
+        ? records
+        : []
+    )
+      .filter(
+        function(flight) {
+
+          const key =
+            getFlightUniqueKey(
+              flight
+            );
+
+          if (
+            seen.has(
+              key
+            )
+          ) {
+            return false;
+          }
+
+          seen.add(
+            key
+          );
+
+          return true;
+
+        }
+      );
+
+  }
+
+
+  /**********************************************************
+   * BROWSER CACHE
+   *
+   * 0~5분:
+   *   cache 즉시 사용 + 서버 조회 없음
+   *
+   * 5~10분:
+   *   cache 즉시 사용 + 서버 background refresh
+   *
+   * 10분 초과:
+   *   cache 폐기 + 서버 정상 조회
+   **********************************************************/
+
+  const cached =
+    loadFlightCache(
+      date,
+      airport,
+      thisDirection
+    );
+
+  let hasDisplayedCache =
+    false;
+
+
+  if (cached) {
+
+    allFlights =
+      normalizeIncomingRecords(
+        cached.data.records
+      );
+
+    visibleFlights =
+      [];
+
+    selectedFlight =
+      null;
+
+    airportFilter =
+      "";
+
+    if (selectedLegLayer) {
+      selectedLegLayer.clearLayers();
+    }
+
+    const detailPanel =
+      document.getElementById(
+        "detailPanel"
+      );
+
+    if (detailPanel) {
+      detailPanel.classList.remove(
+        "open"
+      );
+    }
+
+    refreshVisibleFlightsAfterAts();
+
+    renderFlightList();
+
+    renderResultAirportsFast(
+      thisSearchId,
+      false
+    );
+
+    hasDisplayedCache =
+      true;
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "SEARCH";
+
+
+    /*
+     * 5분 이내면 최신 cache로 간주.
+     * 서버에는 아예 요청하지 않는다.
+     */
+    if (
+      cached.age <
+      FLIGHT_CACHE_FRESH_MS
+    ) {
+
+      return;
+
+    }
+
+  }
+
+
+  /**********************************************************
+   * SERVER REQUEST START
+   **********************************************************/
+
+  button.disabled =
+    true;
+
+  button.textContent =
+    "LOADING";
+
+
+  /*
+   * cache가 없을 때만 기존 결과를 비우고
+   * loading 화면을 표시한다.
+   *
+   * 5~10분 cache가 이미 화면에 표시된 경우에는
+   * 그 화면을 그대로 유지하면서 background refresh한다.
+   */
+  if (!hasDisplayedCache) {
+
+    resetResults();
+
+    listBox.innerHTML =
+      '<div class="empty">UBIKAIS 목록 조회 중...</div>';
+
+  }
+
 
   const baseUrl =
     APPS_SCRIPT_URL +
     "?mode=flights" +
-    "&direction=" + encodeURIComponent(direction) +
-    "&date=" + encodeURIComponent(date) +
-    "&airport=" + encodeURIComponent(airport);
+    "&direction=" +
+      encodeURIComponent(
+        thisDirection
+      ) +
+    "&date=" +
+      encodeURIComponent(
+        date
+      ) +
+    "&airport=" +
+      encodeURIComponent(
+        airport
+      );
 
-  function normalizeIncomingRecords(records) {
-    const seen = new Set();
-
-    return (Array.isArray(records) ? records : [])
-      .filter(function(flight) {
-        const key = getFlightUniqueKey(flight);
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-  }
 
   try {
 
@@ -4689,11 +5049,18 @@ async function searchFlights() {
 
     const fastResponse =
       await fetchWithSearchGuard(
-        baseUrl + "&fast=1",
-        { cache: "no-store", credentials: "omit" },
+        baseUrl +
+          "&fast=1",
+        {
+          cache:
+            "no-store",
+          credentials:
+            "omit"
+        },
         15000,
         120000,
         function() {
+
           if (
             thisSearchId !==
             activeSearchId
@@ -4704,68 +5071,105 @@ async function searchFlights() {
           button.textContent =
             "WAIT";
 
-          listBox.innerHTML =
-            '<div class="empty">' +
-            'UBIKAIS 응답 지연 중...<br>' +
-            '<span style="font-size:10px;color:#9ca3af;">' +
-            '서버 응답을 기다리는 중입니다.' +
-            '</span>' +
-            '</div>';
+          /*
+           * cache 화면이 이미 있으면 WAIT 문구로
+           * 기존 항공편 목록을 덮어쓰지 않는다.
+           */
+          if (!hasDisplayedCache) {
+
+            listBox.innerHTML =
+              '<div class="empty">' +
+              'UBIKAIS 응답 지연 중...<br>' +
+              '<span style="font-size:10px;color:#9ca3af;">' +
+              '서버 응답을 기다리는 중입니다.' +
+              '</span>' +
+              '</div>';
+
+          }
+
         }
       );
 
+
     if (!fastResponse.ok) {
-      throw new Error("Backend HTTP " + fastResponse.status);
+      throw new Error(
+        "Backend HTTP " +
+        fastResponse.status
+      );
     }
 
-    const fastData = await fastResponse.json();
 
-    if (thisSearchId !== activeSearchId) return;
+    const fastData =
+      await fastResponse.json();
 
-    if (fastData.status !== "success") {
-      throw new Error(fastData.msg || "UBIKAIS 조회 실패");
+
+    if (
+      thisSearchId !==
+      activeSearchId
+    ) {
+      return;
     }
+
+
+    if (
+      fastData.status !==
+      "success"
+    ) {
+      throw new Error(
+        fastData.msg ||
+        "UBIKAIS 조회 실패"
+      );
+    }
+
 
     allFlights =
       normalizeIncomingRecords(
         fastData.records
       );
 
-refreshVisibleFlightsAfterAts();
+    refreshVisibleFlightsAfterAts();
 
-renderFlightList();
+    renderFlightList();
 
-    /*
-     * V35 PHASE 1:
-     * UBIKAIS 목록 기준으로 지도도 즉시 표시한다.
-     *
-     * 이후 Original ATS PLAN 검토가 끝나면
-     * PHASE 2에서 같은 지도 marker/badge를 즉시 다시 계산하여
-     * 수정된 DEP/ARR를 실시간 반영한다.
-     *
-     * ARRIVAL / DEPARTURE 공통 적용.
-     */
-    /*
-     * V38:
-     * fast=1 요청이 이미 분석 완료된 FINAL cache를 반환한 경우
-     * 같은 데이터를 PHASE 2에서 다시 요청/표시하지 않는다.
-     *
-     * 따라서 재검색 시 FAST 상태를 잠깐 보여준 뒤 다시 정렬되는
-     * 화면 움직임 없이 cached FINAL을 한 번만 표시한다.
-     */
+
     const fastIsCachedFinal =
-      String(fastData.phase || '').toLowerCase() === 'ats';
+      String(
+        fastData.phase ||
+        ""
+      )
+        .toLowerCase() ===
+      "ats";
+
 
     renderResultAirportsFast(
       thisSearchId,
+      hasDisplayedCache ||
       fastIsCachedFinal
     );
 
-    button.disabled = false;
-    button.textContent = "SEARCH";
 
+    button.disabled =
+      false;
+
+    button.textContent =
+      "SEARCH";
+
+
+    /*
+     * Backend fast=1 자체가 FINAL ATS cache를 반환한 경우
+     * 브라우저 cache에도 저장하고 PHASE 2는 생략한다.
+     */
     if (fastIsCachedFinal) {
+
+      saveFlightCache(
+        date,
+        airport,
+        thisDirection,
+        fastData
+      );
+
       return;
+
     }
 
 
@@ -4776,10 +5180,16 @@ renderFlightList();
     const finalResponse =
       await fetchWithSearchGuard(
         baseUrl,
-        { cache: "no-store", credentials: "omit" },
+        {
+          cache:
+            "no-store",
+          credentials:
+            "omit"
+        },
         15000,
         120000,
         function() {
+
           if (
             thisSearchId !==
             activeSearchId
@@ -4789,69 +5199,119 @@ renderFlightList();
 
           button.textContent =
             "WAIT";
+
+          /*
+           * cache 또는 FAST 결과가 이미 있으므로
+           * 목록 화면은 그대로 둔다.
+           */
+
         }
       );
 
+
     if (!finalResponse.ok) {
-      throw new Error("ATS Backend HTTP " + finalResponse.status);
+      throw new Error(
+        "ATS Backend HTTP " +
+        finalResponse.status
+      );
     }
+
 
     const finalData =
       await finalResponse.json();
 
-    if (thisSearchId !== activeSearchId) return;
 
-    if (finalData.status !== "success") {
-      throw new Error(finalData.msg || "ATS PLAN 조회 실패");
+    if (
+      thisSearchId !==
+      activeSearchId
+    ) {
+      return;
     }
+
+
+    if (
+      finalData.status !==
+      "success"
+    ) {
+      throw new Error(
+        finalData.msg ||
+        "ATS PLAN 조회 실패"
+      );
+    }
+
 
     allFlights =
       normalizeIncomingRecords(
         finalData.records
       );
 
- refreshVisibleFlightsAfterAts();
+    refreshVisibleFlightsAfterAts();
 
     renderFlightList();
 
-    /*
-     * V35 PHASE 2:
-     * Original ATS Item 13/16 검토가 완료된 최종 allFlights로
-     * 지도 marker / badge를 즉시 다시 계산한다.
-     *
-     * 예:
-     * UBIKAIS  RKSI → KLAX
-     * ATS PLAN RKSI → VHHH
-     *
-     * PHASE 1에서는 KLAX에 포함될 수 있지만,
-     * ATS 검토 완료 즉시 KLAX count에서 빠지고
-     * VHHH marker/count에 반영된다.
-     *
-     * ARRIVAL / DEPARTURE 모두 동일 로직.
-     */
- renderResultAirportsFast(
-  thisSearchId,
-  true
-);
+
+    renderResultAirportsFast(
+      thisSearchId,
+      true
+    );
+
+
+    /********************************************************
+     * FINAL ATS DATA -> BROWSER CACHE
+     ********************************************************/
+
+    saveFlightCache(
+      date,
+      airport,
+      thisDirection,
+      finalData
+    );
+
 
   } catch (err) {
 
-    console.error(err);
+    console.error(
+      err
+    );
 
-    if (thisSearchId !== activeSearchId) return;
 
+    if (
+      thisSearchId !==
+      activeSearchId
+    ) {
+      return;
+    }
+
+
+    /*
+     * 기존 cache/FAST 결과가 하나라도 화면에 있으면
+     * 서버 오류가 나더라도 기존 화면을 유지한다.
+     */
     if (!allFlights.length) {
+
       listBox.innerHTML =
         '<div class="empty">' +
-        escapeHtml(err.message) +
+        escapeHtml(
+          err.message
+        ) +
         '</div>';
+
     }
+
 
   } finally {
 
-    if (thisSearchId === activeSearchId) {
-      button.disabled = false;
-      button.textContent = "SEARCH";
+    if (
+      thisSearchId ===
+      activeSearchId
+    ) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "SEARCH";
+
     }
 
   }
