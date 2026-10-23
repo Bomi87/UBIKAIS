@@ -3411,34 +3411,48 @@ function applyAtsPlanIdentity(
 
 
 
-/* UTC chronological order: FPL DOF + Item 13 time, then scheduled date/time fallback. */
+/* UBIKAIS list order: ETD first, STD fallback. All source times are KST.
+ * Does NOT retrieve ATS PLAN DETAIL and does NOT use FPL EOBT/DOF for ordering.
+ * schDate is the UBIKAIS list date; if the chosen timestamp contains its own
+ * full date, use that date to handle flights crossing midnight.
+ */
 function getFlightChronologicalKey(flight) {
   const f = flight || {};
-  function digits(v) { return String(v == null ? '' : v).replace(/\D/g, ''); }
-  function day(v) {
-    const s = String(v == null ? '' : v).trim();
-    const d = digits(s);
+
+  function listDay(value) {
+    const s = String(value == null ? '' : value).trim();
+    const match = s.match(/(?:^|\D)(20\d{2})[-/.]?(\d{1,2})[-/.]?(\d{1,2})(?:\D|$)/);
+    if (match) return match[1] + match[2].padStart(2, '0') + match[3].padStart(2, '0');
+    const d = s.replace(/\D/g, '');
     if (/^\d{8}$/.test(d)) return d;
     if (/^\d{6}$/.test(d)) return '20' + d;
     return '';
   }
-  function hhmm(v) {
-    const s = String(v == null ? '' : v).trim();
-    const m = s.match(/(?:^|\s)([01]?\d|2[0-3]):([0-5]\d)(?::\d\d)?(?:\s|$)/);
-    if (m) return m[1].padStart(2, '0') + m[2];
-    const d = digits(s);
-    const t = /^\d{4}$/.test(d) ? d : /^\d{1,3}$/.test(d) ? d.padStart(4, '0') : '';
-    return t && Number(t.slice(0, 2)) < 24 && Number(t.slice(2)) < 60 ? t : '';
+
+  function listTime(value) {
+    const s = String(value == null ? '' : value).trim();
+    if (!s) return '';
+    const match = s.match(/(?:^|\D)([01]?\d|2[0-3]):([0-5]\d)(?::\d{2})?(?=\D|$)/);
+    if (match) return match[1].padStart(2, '0') + match[2];
+    if (/^\d{3,4}$/.test(s)) {
+      const v = s.padStart(4, '0');
+      if (+v.slice(0, 2) < 24 && +v.slice(2) < 60) return v;
+    }
+    return '';
   }
-  const fplDay = day(f.listFplDof);
-  const fplTime = hhmm(f.listFplDepTime);
-  if (fplDay && fplTime) return fplDay + fplTime;
-  const scheduledDay = day(f.schDate);
-  const scheduledTime = hhmm(f.schTime) || hhmm(f.etd) || hhmm(f.eta);
-  return scheduledDay && scheduledTime ? scheduledDay + scheduledTime : '';
+
+  const etd = listTime(f.etd);
+  const std = listTime(f.schTime);
+  const selectedTime = etd || std;
+  if (!selectedTime) return '';
+
+  // When ETD includes a calendar date, it takes precedence over scheduled date.
+  const date = (etd && listDay(f.etd)) || listDay(f.schDate);
+  return date ? date + selectedTime : selectedTime;
 }
 
 function sortFlightsChronologically(flights) {
+  // Stable tiebreak: retain UBIKAIS's original order for identical times.
   return flights.sort(function(a, b) {
     const ka = getFlightChronologicalKey(a);
     const kb = getFlightChronologicalKey(b);
@@ -5607,6 +5621,9 @@ function resetResults() {
  ************************************************************/
 
 function renderFlightList() {
+
+  // Keep ETD -> STD order after airport filtering and cached refreshes too.
+  sortFlightsChronologically(visibleFlights);
 
   const box =
     document
