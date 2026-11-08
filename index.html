@@ -1480,6 +1480,8 @@ input {
 
         <div style="display:flex;align-items:center;gap:6px;">
 
+          <button id="routeMapBtn" class="copy-btn skyvector-btn" type="button">ROUTE MAP</button>
+
           <button
             id="skyVectorBtn"
             class="copy-btn skyvector-btn"
@@ -2896,6 +2898,8 @@ function bindEvents() {
     )
     .onclick =
       openSkyVectorFromDetail;
+
+  document.getElementById("routeMapBtn").onclick=openRouteMapFromDetail;
 
 
   document
@@ -7729,6 +7733,67 @@ async function copyToClipboard(
 
 }
 
+
+/************************************************************
+ * 선택한 ATS 경로 → SkyVector GPX → 열린 개인 루트앱
+ ************************************************************/
+const ROUTE_MAP_BASE_URL='https://bomi87.github.io/FLIGHT_MAP/';
+function routeMapDestination(){
+  const choices=[{id:'hl8372-route',file:'live/HL8372.kml'},{id:'hl8080-route',file:'live/HL8080.kml'}],user=window.CURRENT_PORTAL_USER;
+  let target=choices[0];
+  if(typeof window.portalCanAccessApp==='function'&&user){target=choices.find(choice=>window.portalCanAccessApp(user,choice.id));if(!target)throw Error('루트앱 접근 권한이 없습니다.');}
+  const url=new URL(ROUTE_MAP_BASE_URL);url.searchParams.set('file',target.file);return url;
+}
+function findOpenRouteMap(channel,requestId){
+  return new Promise(resolve=>{
+    const found=new Map();const listener=event=>{const m=event.data;if(m&&m.v===1&&m.type==='READY'&&m.requestId===requestId)found.set(m.tabId,m);};
+    channel.addEventListener('message',listener);channel.postMessage({v:1,type:'DISCOVER',requestId});
+    setTimeout(()=>{channel.removeEventListener('message',listener);resolve([...found.values()].sort((a,b)=>b.lastActive-a.lastActive)[0]||null);},450);
+  });
+}
+function deliverToOpenRouteMap(channel,target,requestId,payload){
+  return new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>{channel.removeEventListener('message',listener);reject(Error('열려 있는 루트앱에서 응답하지 않습니다. 루트앱 상태를 확인하고 다시 눌러 주세요.'));},20000);
+    const listener=event=>{const m=event.data;if(!m||m.v!==1||m.requestId!==requestId||m.tabId!==target.tabId)return;
+      if(m.type==='IMPORTED'||m.type==='IMPORT_ERROR'){clearTimeout(timer);channel.removeEventListener('message',listener);m.type==='IMPORTED'?resolve(m):reject(Error(m.error||'루트앱에서 GPX를 표시하지 못했습니다.'));}
+    };
+    channel.addEventListener('message',listener);channel.postMessage({v:1,type:'IMPORT_GPX',target:target.tabId,requestId,payload});
+  });
+}
+async function openRouteMapFromDetail(){
+  const button=document.getElementById('routeMapBtn');if(button.disabled)return;
+  let tab=null,channel=null;const previousText=button.textContent;
+  try{
+    if(!selectedFlight)throw Error('항공편을 먼저 선택해 주세요.');
+    const flight={...selectedFlight},dep=normalizeIcao(flight.dep),arr=normalizeIcao(flight.arr),route=String(document.getElementById('routeBox').textContent||'').replace(/\s+/g,' ').trim();
+    if(!dep||!arr||!route||/^(?:ATS PLAN|Route 없음|ERROR:)/i.test(route))throw Error('ATS 경로 조회가 끝난 뒤 눌러 주세요.');
+    const destination=routeMapDestination();
+    if(location.origin!==destination.origin)throw Error('기존 루트앱 재사용을 위해 두 앱을 같은 사이트(bomi87.github.io)에서 열어 주세요.');
+    if(typeof BroadcastChannel!=='function')throw Error('이 브라우저는 열린 루트앱 연동을 지원하지 않습니다. 최신 Chrome 또는 Edge를 사용해 주세요.');
+    button.disabled=true;button.textContent='루트앱 확인…';
+    channel=new BroadcastChannel('SK_FLIGHT_MAP_BRIDGE_V1');
+    const requestId=typeof crypto.randomUUID==='function'?crypto.randomUUID():Date.now()+'-'+Math.random();
+    const existing=await findOpenRouteMap(channel,requestId);
+    if(!existing){
+      // 열린 앱이 없을 때만 이름이 고정된 탭을 연다.
+      tab=window.open('','SK_FLIGHT_MAP');if(!tab)throw Error('새 탭이 차단됐습니다. 이 사이트의 팝업을 허용해 주세요.');
+      if(tab.location.href==='about:blank'){tab.document.title='ROUTE MAP';tab.document.body.textContent='GPX 경로를 준비하고 있습니다…';}
+    }
+    button.textContent='GPX 생성 중…';saveSkyVectorReturnState();
+    const params=new URLSearchParams({mode:'routeGpx',dep,arr,route,flight:String(flight.flight||'ROUTE'),flightKey:String(flight.amsRecPk||'')});
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),150000);let data;
+    try{const response=await fetch(APPS_SCRIPT_URL+'?'+params.toString(),{cache:'no-store',credentials:'omit',signal:controller.signal});if(!response.ok)throw Error('Backend HTTP '+response.status);data=await response.json();}finally{clearTimeout(timer);}
+    if(!data||data.status!=='success'||typeof data.gpx!=='string')throw Error(data&&data.msg||'GPX를 생성하지 못했습니다.');
+    if(data.dep!==dep||data.arr!==arr)throw Error('받은 GPX가 선택한 비행과 다릅니다.');
+    const payload={v:1,source:'ubikais-route',fileName:data.fileName,gpx:data.gpx};
+    if(existing){await deliverToOpenRouteMap(channel,existing,requestId,payload);}
+    else{
+      destination.hash=new URLSearchParams({importGpx:JSON.stringify(payload)}).toString();if(destination.href.length>900000)throw Error('자동 전달 가능한 경로 크기를 초과했습니다.');
+      if(tab.closed)throw Error('루트앱 탭이 닫혔습니다. 다시 눌러 주세요.');tab.location.replace(destination.href);tab.focus();
+    }
+  }catch(error){if(tab&&!tab.closed&&tab.location.href==='about:blank')tab.close();alert(error.name==='AbortError'?'GPX 생성 시간이 초과됐습니다. 다시 시도해 주세요.':error.message||String(error));}
+  finally{if(channel)channel.close();button.disabled=false;button.textContent=previousText;}
+}
 
 function openSkyVectorFromDetail() {
 
